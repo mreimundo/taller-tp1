@@ -8,7 +8,7 @@ const DEFAULT_STACK_SIZE: usize = 1024 * 128; //128KB
 const DEFAULT_STACK_SIZE_AS_STR: &'static str = "131072"; //128KB en string
 
 
-/*-------------- TODO CHECKLIST ----------------
+/*-------------- TODO CHECKLIST --------------
     - Análisis de traits: qué tanto se pueden implementar y si lo vale o no
     - Check general de código y refactors: validar con las restricciones del TP y los requerimientos no funcionales. Ver nombre de tipos
     - Implementación de operaciones booleanas
