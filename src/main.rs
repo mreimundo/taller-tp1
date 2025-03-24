@@ -9,7 +9,6 @@ const DEFAULT_STACK_SIZE_AS_STR: &'static str = "131072"; //128KB en string
 
 
 /*-------------- TODO CHECKLIST --------------
-    - Implementación de operaciones condicionales: la idea es definir las ops if then else pero verificar que solo se puedan recibir en una word, sino imprimir stack overflow
     - Escribir el stack restante luego de leer el path file en un nuevo archivo stack.fth. Formato: si el stack es [1, 2] escribirle 1 2
     - Manejo de errores: implementación y pensar si vale la pena usar structs o std:error / similares de std
     - Separación en archivos
@@ -65,7 +64,7 @@ enum OutputOperation {
     Dot,
     Emit,
     Cr,
-    DotQuote(String),
+    DotQuote(String)
 }
 
 #[derive(Debug)]
@@ -75,15 +74,22 @@ enum BooleanOperation {
     Greater,
     And,
     Or,
-    Not,
+    Not
 }
 
 #[derive(Debug)]
 enum ConditionalOperation {
     If,
     Then,
-    Else,
+    Else
 }
+#[derive(PartialEq)]
+enum ExecutionMode { //se creó más que nada para manejar los stages en los if else then
+    Executing,
+    SkippingIf,
+    SkippingElse
+}
+
 
 #[derive(Debug)]
 struct Stack(Vec<i16>);
@@ -355,7 +361,7 @@ fn execute_boolean_op(op: &BooleanOperation, stack: &mut Stack) {
                     BooleanOperation::Less => a > b,
                     BooleanOperation::And => a == -1 && b == -1,
                     BooleanOperation::Or => a == -1 || b == -1,
-                    _ => false, //dummy (nunca deberia llegar acá)
+                    _ => false, //nunca deberia llegar acá
                 };
                 stack.push(if result { -1 } else { 0 });
             }
@@ -363,29 +369,103 @@ fn execute_boolean_op(op: &BooleanOperation, stack: &mut Stack) {
     }
 }
 
-fn execute_conditional_op(op: &ConditionalOperation, stack: &mut Stack) { 
-    
+fn execute_conditional_op(op: &ConditionalOperation, stack: &mut Stack, execution_mode: &mut ExecutionMode) {
+    match op {
+        ConditionalOperation::If => {
+            if let Some(condition) = stack.pop() {
+                if condition == 0 {
+                    *execution_mode = ExecutionMode::SkippingIf;
+                } else {
+                    *execution_mode = ExecutionMode::Executing;
+                }
+            } else {
+                println!("Error: pila vacía en IF.");//stack underflow
+            }
+        }
+        ConditionalOperation::Else => {
+            match execution_mode {
+                ExecutionMode::Executing => {
+                    *execution_mode = ExecutionMode::SkippingElse;
+                }
+                ExecutionMode::SkippingIf => {
+                    *execution_mode = ExecutionMode::Executing;
+                }
+                _ => {}
+            }
+        }
+        ConditionalOperation::Then => {
+            *execution_mode = ExecutionMode::Executing;
+        }
+    }
 }
 
-fn execute_instruction(val: &ForthValue, stack: &mut Stack, dictionary: &WordsDictionary) {
+
+
+fn execute_other_operations(val: &ForthValue, stack: &mut Stack, dictionary: &WordsDictionary) {
     match val {
-        ForthValue::Operation(ForthOperation::Arithmetic(val)) => execute_arithmetic_op(val, stack),
-        ForthValue::Operation(ForthOperation::StackTypeOp(val)) => execute_stack_op(val, stack),
-        ForthValue::Operation(ForthOperation::Output(val)) => execute_output_op(val, stack),
-        ForthValue::Operation(ForthOperation::Boolean(val)) => execute_boolean_op(val, stack),
-        ForthValue::Operation(ForthOperation::Conditional(val)) => execute_conditional_op(val, stack),
+        ForthValue::Operation(ForthOperation::Arithmetic(op)) => execute_arithmetic_op(op, stack),
+        ForthValue::Operation(ForthOperation::StackTypeOp(op)) => execute_stack_op(op, stack),
+        ForthValue::Operation(ForthOperation::Output(op)) => execute_output_op(op, stack),
+        ForthValue::Operation(ForthOperation::Boolean(op)) => execute_boolean_op(op, stack),
         ForthValue::Number(n) => stack.push(*n),
         ForthValue::Word(ForthWord::WordStart(word_name)) => {
             if let Some(definition) = dictionary.get_word(word_name) {
+                let mut mode = ExecutionMode::Executing;
                 for val in definition {
-                    execute_instruction(val, stack, dictionary);
+                    execute_instruction(val, stack, dictionary, &mut mode);
                 }
             } else {
                 println!("Error: palabra no definida '{}'", word_name);
             }
         }
-        ForthValue::Word(ForthWord::WordDefinition) | ForthValue::Word(ForthWord::WordEnd) => { },
-        ForthValue::Unknown(val) => println!("Error: operación desconocida '{}'", val),
+        _ => { }
+    }
+}
+
+
+fn execute_instruction(
+    val: &ForthValue,
+    stack: &mut Stack,
+    dictionary: &WordsDictionary,
+    execution_mode: &mut ExecutionMode,
+) {
+    match execution_mode {
+        ExecutionMode::Executing => {
+            match val {
+                ForthValue::Operation(ForthOperation::Conditional(val)) => {
+                    execute_conditional_op(val, stack, execution_mode)
+                }
+                ForthValue::Word(ForthWord::WordStart(word_name)) => {
+                    if let Some(definition) = dictionary.get_word(word_name) {
+                        let mut mode = ExecutionMode::Executing;
+                        for val in definition {
+                            execute_instruction(val, stack, dictionary, &mut mode);
+                        }
+                    } else {
+                        println!("Error: palabra no definida '{}'", word_name);
+                    }
+                }
+                _ => execute_other_operations(val, stack, dictionary),
+            }
+        }
+        ExecutionMode::SkippingIf | ExecutionMode::SkippingElse => {
+            match val {
+                ForthValue::Operation(ForthOperation::Conditional(ConditionalOperation::Then)) => {
+                    *execution_mode = ExecutionMode::Executing;
+                    println!("Finalizando bloque THEN.");
+                }
+                ForthValue::Operation(ForthOperation::Conditional(ConditionalOperation::Else)) => {
+                    if *execution_mode == ExecutionMode::SkippingIf {
+                        *execution_mode = ExecutionMode::Executing;
+                        println!("Ejecutando bloque ELSE...");
+                    } else {
+                        *execution_mode = ExecutionMode::SkippingElse;
+                        println!("Saltando hasta THEN...");
+                    }
+                }
+                _ => { }
+            }
+        }
     }
 }
 
@@ -435,19 +515,17 @@ fn handle_word_end(
 }
 
 
-
-
 fn handle_other_token(
     value: ForthValue,
-    flag: bool,
+    flag_defining_word: bool,
     definition: &mut Vec<ForthValue>,
     stack: &mut Stack,
-    dictionary: &mut WordsDictionary
+    dictionary: &mut WordsDictionary,
 ) {
-    if flag {
-        definition.push(value); // Se mueve en lugar de clonar
+    if flag_defining_word {
+        definition.push(value);
     } else {
-        execute_instruction(&value, stack, dictionary);
+        execute_instruction(&value, stack, dictionary, &mut ExecutionMode::Executing);
     }
 }
 
