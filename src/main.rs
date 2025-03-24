@@ -9,12 +9,13 @@ const DEFAULT_STACK_SIZE_AS_STR: &'static str = "131072"; //128KB en string
 
 
 /*-------------- TODO CHECKLIST --------------
-    - Implementación de operaciones condicionales
-    - Manejo de errores: implementación y pensar si vale la pena usar structs o algo de std
+    - Implementación de operaciones condicionales: la idea es definir las ops if then else pero verificar que solo se puedan recibir en una word, sino imprimir stack overflow
+    - Escribir el stack restante luego de leer el path file en un nuevo archivo stack.fth. Formato: si el stack es [1, 2] escribirle 1 2
+    - Manejo de errores: implementación y pensar si vale la pena usar structs o std:error / similares de std
     - Separación en archivos
     - Tests: a la misma altura que src pero en módulos apartes tipo crate. Implementarlos usando #[cfg(test)] en c/u. No se testea main.rs
-    - cargo fmt y cargo clippy
-    - cargo doc
+    - cargo fmt y cargo clippy (fix warnings)
+    - completar cargo doc
     - Probar compilación y ejecución en una distro de linux. Validar todos los casos posibles
 */
 
@@ -362,7 +363,9 @@ fn execute_boolean_op(op: &BooleanOperation, stack: &mut Stack) {
     }
 }
 
-fn not_done_yet () { println!("Not done yet."); }
+fn execute_conditional_op(op: &ConditionalOperation, stack: &mut Stack) { 
+    
+}
 
 fn execute_instruction(val: &ForthValue, stack: &mut Stack, dictionary: &WordsDictionary) {
     match val {
@@ -370,7 +373,7 @@ fn execute_instruction(val: &ForthValue, stack: &mut Stack, dictionary: &WordsDi
         ForthValue::Operation(ForthOperation::StackTypeOp(val)) => execute_stack_op(val, stack),
         ForthValue::Operation(ForthOperation::Output(val)) => execute_output_op(val, stack),
         ForthValue::Operation(ForthOperation::Boolean(val)) => execute_boolean_op(val, stack),
-        ForthValue::Operation(ForthOperation::Conditional(_val)) => not_done_yet(),
+        ForthValue::Operation(ForthOperation::Conditional(val)) => execute_conditional_op(val, stack),
         ForthValue::Number(n) => stack.push(*n),
         ForthValue::Word(ForthWord::WordStart(word_name)) => {
             if let Some(definition) = dictionary.get_word(word_name) {
