@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Write};
 use std::iter::Peekable;
 use std::str::Chars;
 
 const DEFAULT_STACK_SIZE: usize = 1024 * 128; //128KB
 const DEFAULT_STACK_SIZE_AS_STR: &'static str = "131072"; //128KB en string
+const STACK_REST_PATHNAME: &'static str = "stack.fth";
 
 
 /*-------------- TODO CHECKLIST --------------
@@ -109,6 +110,20 @@ impl Stack {
     
     fn peek(&self) -> Option<&i16> {
         self.0.last()
+    }
+
+    fn write_into_file(&mut self) -> io::Result<bool> {
+        let mut file = match File::options().read(true).write(true).create(true).truncate(true).open(STACK_REST_PATHNAME) {
+            Ok(file) => file,
+            Err(e) => return Err(e),
+        };
+    
+        let stack_results: Vec<u8> = self.0.iter().map(|&item| item as u8).collect();
+        
+        match file.write_all(&stack_results) {
+            Ok(_) => Ok(true),
+            Err(e) => Err(e),
+        }
     }
 }
 
@@ -285,7 +300,6 @@ fn execute_arithmetic_op(op: &ArithmeticOperation, stack: &mut Stack) {
             ArithmeticOperation::Multiply => a * b,
             ArithmeticOperation::Divide => b / a, // Asume que a ≠ 0 (manejo de error pendiente)
         };
-        println!("Resultado operación: {}", result); //borrar dsp
         stack.push(result);
     }
 }
@@ -559,6 +573,10 @@ fn main() {
         for line in lines {
             let tokens = tokenize(&line);
             read_tokens(&tokens, &mut stack, &mut words_dictionary);
+        }
+        match stack.write_into_file() {
+            Ok(_) => { println!("Stack restante ({:?}) escrito en {}!", stack.0, STACK_REST_PATHNAME); }
+            Err(_) => { println!("Ocurrió un error al escribir el stack"); }
         }
     } else {
         println!("Error al leer el archivo .fth");
