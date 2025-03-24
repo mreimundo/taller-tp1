@@ -9,7 +9,7 @@ const DEFAULT_STACK_SIZE_AS_STR: &'static str = "131072"; //128KB en string
 
 
 /*-------------- TODO CHECKLIST --------------
-    - Escribir el stack restante luego de leer el path file en un nuevo archivo stack.fth. Formato: si el stack es [1, 2] escribirle 1 2
+    - Escribir el stack restante luego de leer el path file (y ejecutar todo) en un nuevo archivo stack.fth. Formato: si el stack es [1, 2] escribirle 1 2
     - Manejo de errores: implementación y pensar si vale la pena usar structs o std:error / similares de std
     - Separación en archivos
     - Tests: a la misma altura que src pero en módulos apartes tipo crate. Implementarlos usando #[cfg(test)] en c/u. No se testea main.rs
@@ -423,12 +423,7 @@ fn execute_other_operations(val: &ForthValue, stack: &mut Stack, dictionary: &Wo
 }
 
 
-fn execute_instruction(
-    val: &ForthValue,
-    stack: &mut Stack,
-    dictionary: &WordsDictionary,
-    execution_mode: &mut ExecutionMode,
-) {
+fn execute_instruction(val: &ForthValue, stack: &mut Stack, dictionary: &WordsDictionary, execution_mode: &mut ExecutionMode) {
     match execution_mode {
         ExecutionMode::Executing => {
             match val {
@@ -441,9 +436,7 @@ fn execute_instruction(
                         for val in definition {
                             execute_instruction(val, stack, dictionary, &mut mode);
                         }
-                    } else {
-                        println!("Error: palabra no definida '{}'", word_name);
-                    }
+                    } else { println!("Error: palabra no definida '{}'", word_name); }
                 }
                 _ => execute_other_operations(val, stack, dictionary),
             }
@@ -452,16 +445,10 @@ fn execute_instruction(
             match val {
                 ForthValue::Operation(ForthOperation::Conditional(ConditionalOperation::Then)) => {
                     *execution_mode = ExecutionMode::Executing;
-                    println!("Finalizando bloque THEN.");
                 }
                 ForthValue::Operation(ForthOperation::Conditional(ConditionalOperation::Else)) => {
-                    if *execution_mode == ExecutionMode::SkippingIf {
-                        *execution_mode = ExecutionMode::Executing;
-                        println!("Ejecutando bloque ELSE...");
-                    } else {
-                        *execution_mode = ExecutionMode::SkippingElse;
-                        println!("Saltando hasta THEN...");
-                    }
+                    if *execution_mode == ExecutionMode::SkippingIf { *execution_mode = ExecutionMode::Executing; }
+                    else { *execution_mode = ExecutionMode::SkippingElse; }
                 }
                 _ => { }
             }
@@ -470,13 +457,7 @@ fn execute_instruction(
 }
 
 
-fn handle_word_definition<'a>(
-    tokens: &'a [String], 
-    i: &mut usize, 
-    flag: &mut bool, 
-    name: &mut &'a str,
-    definition: &mut Vec<ForthValue>
-) {
+fn handle_word_definition<'a>(tokens: &'a [String], i: &mut usize, flag: &mut bool, name: &mut &'a str, definition: &mut Vec<ForthValue>) {
     if *flag {
         println!("Error: ya se está definiendo una palabra.");
         return;
@@ -494,12 +475,7 @@ fn handle_word_definition<'a>(
 }
 
 
-fn handle_word_end(
-    flag: &mut bool, 
-    name: &str, 
-    definition: &mut Vec<ForthValue>, 
-    dictionary: &mut WordsDictionary
-) {
+fn handle_word_end(flag: &mut bool, name: &str, definition: &mut Vec<ForthValue>, dictionary: &mut WordsDictionary) {
     if *flag {
         let mut new_definition = Vec::new();
         
@@ -515,13 +491,7 @@ fn handle_word_end(
 }
 
 
-fn handle_other_token(
-    value: ForthValue,
-    flag_defining_word: bool,
-    definition: &mut Vec<ForthValue>,
-    stack: &mut Stack,
-    dictionary: &mut WordsDictionary,
-) {
+fn handle_other_token(value: ForthValue, flag_defining_word: bool, definition: &mut Vec<ForthValue>, stack: &mut Stack, dictionary: &mut WordsDictionary) {
     if flag_defining_word {
         definition.push(value);
     } else {
