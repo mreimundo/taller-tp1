@@ -10,7 +10,8 @@ const STACK_REST_PATHNAME: &'static str = "stack.fth";
 
 
 /*-------------- TODO CHECKLIST --------------
-    - Escribir el stack restante luego de leer el path file (y ejecutar todo) en un nuevo archivo stack.fth. Formato: si el stack es [1, 2] escribirle 1 2
+    - Escribir el stack restante luego de leer el path file (y ejecutar todo) en un nuevo archivo stack.fth. Formato: si el stack es [1, 2] escribirle 1 2 (falta esto último ver si efectivamente es asi)
+    - Para words corregir: shadowing, non transitive, self definition
     - Manejo de errores: implementación y pensar si vale la pena usar structs o std:error / similares de std
     - Separación en archivos
     - Tests: a la misma altura que src pero en módulos apartes tipo crate. Implementarlos usando #[cfg(test)] en c/u. No se testea main.rs
@@ -140,11 +141,11 @@ impl WordsDictionary {
     }
     
     fn add_word(&mut self, name: &str, definition: Vec<ForthValue>) {
-        self.words.insert(name.to_string(), definition);
+        self.words.insert(name.to_uppercase().as_str().to_string(), definition);
     }
     
     fn get_word(&self, name: &str) -> Option<&Vec<ForthValue>> {
-        self.words.get(name)
+        self.words.get(name.to_uppercase().as_str())
     }
 }
 
