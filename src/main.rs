@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::{self, BufRead, Write};
+use std::fs::{self, File};
+use std::io::{self, BufRead};
 use std::iter::Peekable;
 use std::str::Chars;
 
@@ -10,7 +10,6 @@ const STACK_REST_PATHNAME: &'static str = "stack.fth";
 
 
 /*-------------- TODO CHECKLIST --------------
-    - Escribir el stack restante luego de leer el path file (y ejecutar todo) en un nuevo archivo stack.fth. Formato: si el stack es [1, 2] escribirle 1 2 (falta esto último ver si efectivamente es asi)
     - Para words corregir: shadowing, non transitive, self definition
     - Manejo de errores: implementación y pensar si vale la pena usar structs o std:error / similares de std
     - Separación en archivos
@@ -114,14 +113,11 @@ impl Stack {
     }
 
     fn write_into_file(&mut self) -> io::Result<bool> {
-        let mut file = match File::options().read(true).write(true).create(true).truncate(true).open(STACK_REST_PATHNAME) {
-            Ok(file) => file,
-            Err(e) => return Err(e),
-        };
-    
-        let stack_results: Vec<u8> = self.0.iter().map(|&item| item as u8).collect();
+        let stack_results: Vec<String> = self.0.iter().map(|&item| item.to_string()).collect();
         
-        match file.write_all(&stack_results) {
+        let result = fs::write(STACK_REST_PATHNAME, stack_results.join(" "));
+
+        match result {
             Ok(_) => Ok(true),
             Err(e) => Err(e),
         }
@@ -244,7 +240,7 @@ fn parse_boolean(token: &str) -> Option<ForthValue> {
         ">" => Some(ForthValue::Operation(ForthOperation::Boolean(BooleanOperation::Greater))),
         "AND" => Some(ForthValue::Operation(ForthOperation::Boolean(BooleanOperation::And))),
         "OR" => Some(ForthValue::Operation(ForthOperation::Boolean(BooleanOperation::Or))),
-        "INVERT" => Some(ForthValue::Operation(ForthOperation::Boolean(BooleanOperation::Not))),
+        "INVERT" | "NOT" => Some(ForthValue::Operation(ForthOperation::Boolean(BooleanOperation::Not))), //agregue el invert porque asi funcionaba en EasyForth, aunque no es necesario
         _ => None,
     }
 }
@@ -365,7 +361,7 @@ fn execute_boolean_op(op: &BooleanOperation, stack: &mut Stack) {
     match op {
         BooleanOperation::Not => { //la separo porque es la unica que toma un valor (niega el último)
             if let Some(a) = stack.pop() {
-                stack.push(if a == -1 { 0 } else { -1 });
+                stack.push(if a != 0 { 0 } else { -1 });
             }
         },
         _ => {
