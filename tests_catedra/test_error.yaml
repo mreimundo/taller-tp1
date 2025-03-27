@@ -88,13 +88,13 @@
   expected_output: "division-by-zero\n"
   expected_stack: []
 
-- name: "invalid word 1 (CHEQUEAR)"
+- name: "invalid word 1"
   code: |
     : 1 2 ;
   expected_output: "invalid-word\n"
   expected_stack: []
 
-- name: "invalid word 2 (CHEQUEAR)"
+- name: "invalid word 2"
   code: |
     : -1 2 ;
   expected_output: "invalid-word\n"

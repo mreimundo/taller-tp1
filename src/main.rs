@@ -10,6 +10,7 @@ const STACK_REST_PATHNAME: &'static str = "stack.fth";
 
 
 /*-------------- TODO CHECKLIST --------------
+    - Corregir nested ifs
     - Manejo de errores: implementación y pensar si vale la pena usar structs o std:error / similares de std
     - Separación en archivos
     - Tests: a la misma altura que src pero en módulos apartes tipo crate. Implementarlos usando #[cfg(test)] en c/u. No se testea main.rs
@@ -526,6 +527,13 @@ fn handle_word_definition<'a>(tokens: &'a [String], i: &mut usize, flag: &mut bo
         return;
     }
 
+    let word_name = &tokens[*i + 1];
+
+    if word_name.parse::<i16>().is_ok() {
+        println!("Error: el nombre de la palabra no puede ser numérico.");
+        return;
+    }
+
     *flag = true;
     *name = &tokens[*i + 1];
     definition.clear();
@@ -616,11 +624,6 @@ fn handle_word_end(flag: &mut bool, name: &str, definition: &mut Vec<ForthValue>
 }
 
 
-
-
-
-
-
 fn handle_other_token(
     value: ForthValue, 
     flag_defining_word: bool, 
@@ -635,8 +638,6 @@ fn handle_other_token(
         execute_instruction(&value, stack, dictionary, &mut ExecutionMode::Executing, None, executed_words);
     }
 }
-
-
 
 
 /*función para leer los tokens.
@@ -656,9 +657,12 @@ fn read_tokens(tokens: &[String], stack: &mut Stack, dictionary: &mut WordsDicti
         match &value {
             ForthValue::Word(ForthWord::WordDefinition) => {
                 handle_word_definition(tokens, &mut i, &mut flag_defining_word, &mut current_word_name, &mut current_definition);
+                if !flag_defining_word { return; }
             }
             ForthValue::Word(ForthWord::WordEnd) => {
                 handle_word_end(&mut flag_defining_word, &current_word_name, &mut current_definition, dictionary);
+                if flag_defining_word { flag_defining_word = false; }
+                else { return; }
             }
             _ => {
                 handle_other_token(value, flag_defining_word, &mut current_definition, stack, dictionary, &mut executed_words);
@@ -668,9 +672,7 @@ fn read_tokens(tokens: &[String], stack: &mut Stack, dictionary: &mut WordsDicti
         i += 1;
     }
 
-    if flag_defining_word {
-        println!("Error: falta ';'");
-    }
+    if flag_defining_word { println!("Error: falta ';'"); }
 }
 
 
