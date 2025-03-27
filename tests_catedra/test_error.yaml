@@ -82,19 +82,19 @@
   expected_output: "stack-underflow\n"
   expected_stack: []
 
-- name: "division by zero"
+- name: "division by zero (CORREGIR)"
   code: |
     4 0 /
   expected_output: "division-by-zero\n"
   expected_stack: []
 
-- name: "invalid word 1"
+- name: "invalid word 1 (CHEQUEAR)"
   code: |
     : 1 2 ;
   expected_output: "invalid-word\n"
   expected_stack: []
 
-- name: "invalid word 2"
+- name: "invalid word 2 (CHEQUEAR)"
   code: |
     : -1 2 ;
   expected_output: "invalid-word\n"
@@ -106,7 +106,7 @@
   expected_output: "?\n"
   expected_stack: []
 
-- name: "limited stack"
+- name: "limited stack (CHEQUEAR)"
   stack_size: 10
   code: |
     1 2 3 4 5

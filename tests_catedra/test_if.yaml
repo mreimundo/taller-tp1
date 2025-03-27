@@ -24,7 +24,7 @@
     0 0 f
   expected_stack: [1, 2, 3]
 
-- name: "nested if else"
+- name: "nested if else (CORREGIR)"
   code: |
     : f
       dup 0 = if
