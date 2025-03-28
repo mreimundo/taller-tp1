@@ -1,3 +1,6 @@
+mod errors;
+
+use errors::{ForthError, print_error};
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{self, BufRead};
@@ -8,15 +11,15 @@ const DEFAULT_STACK_SIZE: usize = 1024 * 128; //128KB
 const DEFAULT_STACK_SIZE_AS_STR: &'static str = "131072"; //128KB en string
 const STACK_REST_PATHNAME: &'static str = "stack.fth";
 
-
 /*-------------- TODO CHECKLIST --------------
-    - Corregir nested ifs
-    - Manejo de errores: implementación y pensar si vale la pena usar structs o std:error / similares de std
-    - Separación en archivos
-    - Tests: a la misma altura que src pero en módulos apartes tipo crate. Implementarlos usando #[cfg(test)] en c/u. No se testea main.rs
-    - cargo fmt y cargo clippy (fix warnings)
-    - completar cargo doc
-    - Probar compilación y ejecución en una distro de linux. Validar todos los casos posibles
+- Falta validar stack overflow y casos de test_error
+- Separación en archivos
+- Tests: a la misma altura que src pero en módulos apartes tipo crate. Implementarlos usando #[cfg(test)] en c/u. No se testea main.rs
+- cargo fmt y cargo clippy (fix warnings)
+- completar cargo doc
+- Probar compilación y ejecución en una distro de linux. Validar todos los casos posibles
+- Reducir líneas de algunas funciones
+- Corregir nested ifs
 */
 
 #[derive(Debug)]
@@ -24,7 +27,6 @@ enum ForthValue {
     Operation(ForthOperation),
     Word(ForthWord),
     Number(i16),
-    Unknown(String)
 }
 
 #[derive(Debug)]
@@ -33,7 +35,7 @@ enum ForthOperation {
     StackTypeOp(StackOperation),
     Output(OutputOperation),
     Boolean(BooleanOperation),
-    Conditional(ConditionalOperation)
+    Conditional(ConditionalOperation),
 }
 
 #[derive(Debug)]
@@ -41,7 +43,7 @@ enum ArithmeticOperation {
     Add,
     Substract,
     Multiply,
-    Divide
+    Divide,
 }
 
 #[derive(Debug)]
@@ -50,14 +52,14 @@ enum StackOperation {
     Drop,
     Swap,
     Over,
-    Rotate
+    Rotate,
 }
 
 #[derive(Debug)]
 enum ForthWord {
     WordStart(String),
     WordDefinition,
-    WordEnd
+    WordEnd,
 }
 
 #[derive(Debug)]
@@ -65,7 +67,7 @@ enum OutputOperation {
     Dot,
     Emit,
     Cr,
-    DotQuote(String)
+    DotQuote(String),
 }
 
 #[derive(Debug)]
@@ -75,22 +77,20 @@ enum BooleanOperation {
     Greater,
     And,
     Or,
-    Not
+    Not,
 }
 
 #[derive(Debug)]
 enum ConditionalOperation {
     If,
     Then,
-    Else
+    Else,
 }
 #[derive(PartialEq)]
-enum ExecutionMode { //se creó más que nada para manejar los stages en los if else then
+enum ExecutionMode {
     Executing,
-    SkippingIf,
-    SkippingElse
+    Skipping(usize),
 }
-
 
 #[derive(Debug)]
 struct Stack(Vec<i16>);
@@ -99,22 +99,22 @@ impl Stack {
     fn new(size: usize) -> Self {
         Stack(Vec::with_capacity(size))
     }
-    
+
     fn push(&mut self, value: i16) {
         self.0.push(value);
     }
-    
+
     fn pop(&mut self) -> Option<i16> {
         self.0.pop()
     }
-    
+
     fn peek(&self) -> Option<&i16> {
         self.0.last()
     }
 
     fn write_into_file(&mut self) -> io::Result<bool> {
         let stack_results: Vec<String> = self.0.iter().map(|&item| item.to_string()).collect();
-        
+
         let result = fs::write(STACK_REST_PATHNAME, stack_results.join(" "));
 
         match result {
@@ -126,7 +126,7 @@ impl Stack {
 
 #[derive(Debug)]
 struct WordsDictionary {
-    words: HashMap<String, Vec<ForthValue>>
+    words: HashMap<String, Vec<ForthValue>>,
 }
 
 impl WordsDictionary {
@@ -177,13 +177,11 @@ fn tokenize_dot_quote(chars: &mut Peekable<Chars>, tokens: &mut Vec<String>) {
     tokens.push(format!(".\"{}", dot_quote));
 }
 
-
 fn handle_token_char(cur_tok: String, tokens: &mut Vec<String>) {
     if !cur_tok.is_empty() {
         tokens.push(cur_tok);
     }
 }
-
 
 fn tokenize(input: &str) -> Vec<String> {
     let mut tokens = Vec::new();
@@ -193,15 +191,17 @@ fn tokenize(input: &str) -> Vec<String> {
     while let Some(c) = chars.next() {
         match c {
             '.' if chars.peek() == Some(&'"') => {
-                    handle_token_char(current_token, &mut tokens);
-                    current_token = String::new();
-                    tokenize_dot_quote(&mut chars, &mut tokens);
-                }
-            ' ' | '\t' => { 
+                handle_token_char(current_token, &mut tokens);
+                current_token = String::new();
+                tokenize_dot_quote(&mut chars, &mut tokens);
+            }
+            ' ' | '\t' => {
                 handle_token_char(current_token, &mut tokens);
                 current_token = String::new();
             }
-            _ => { current_token.push(c); }
+            _ => {
+                current_token.push(c);
+            }
         }
     }
 
@@ -210,54 +210,95 @@ fn tokenize(input: &str) -> Vec<String> {
     tokens
 }
 
-
 fn parse_arithmetic(token: &str) -> Option<ForthValue> {
     match token {
-        "+" => Some(ForthValue::Operation(ForthOperation::Arithmetic(ArithmeticOperation::Add))),
-        "-" => Some(ForthValue::Operation(ForthOperation::Arithmetic(ArithmeticOperation::Substract))),
-        "*" => Some(ForthValue::Operation(ForthOperation::Arithmetic(ArithmeticOperation::Multiply))),
-        "/" => Some(ForthValue::Operation(ForthOperation::Arithmetic(ArithmeticOperation::Divide))),
+        "+" => Some(ForthValue::Operation(ForthOperation::Arithmetic(
+            ArithmeticOperation::Add,
+        ))),
+        "-" => Some(ForthValue::Operation(ForthOperation::Arithmetic(
+            ArithmeticOperation::Substract,
+        ))),
+        "*" => Some(ForthValue::Operation(ForthOperation::Arithmetic(
+            ArithmeticOperation::Multiply,
+        ))),
+        "/" => Some(ForthValue::Operation(ForthOperation::Arithmetic(
+            ArithmeticOperation::Divide,
+        ))),
         _ => None,
     }
 }
 
 fn parse_stack_op(token: &str) -> Option<ForthValue> {
     match token {
-        "DUP" => Some(ForthValue::Operation(ForthOperation::StackTypeOp(StackOperation::Duplicate))),
-        "DROP" => Some(ForthValue::Operation(ForthOperation::StackTypeOp(StackOperation::Drop))),
-        "SWAP" => Some(ForthValue::Operation(ForthOperation::StackTypeOp(StackOperation::Swap))),
-        "OVER" => Some(ForthValue::Operation(ForthOperation::StackTypeOp(StackOperation::Over))),
-        "ROT" => Some(ForthValue::Operation(ForthOperation::StackTypeOp(StackOperation::Rotate))),
+        "DUP" => Some(ForthValue::Operation(ForthOperation::StackTypeOp(
+            StackOperation::Duplicate,
+        ))),
+        "DROP" => Some(ForthValue::Operation(ForthOperation::StackTypeOp(
+            StackOperation::Drop,
+        ))),
+        "SWAP" => Some(ForthValue::Operation(ForthOperation::StackTypeOp(
+            StackOperation::Swap,
+        ))),
+        "OVER" => Some(ForthValue::Operation(ForthOperation::StackTypeOp(
+            StackOperation::Over,
+        ))),
+        "ROT" => Some(ForthValue::Operation(ForthOperation::StackTypeOp(
+            StackOperation::Rotate,
+        ))),
         _ => None,
     }
 }
 
 fn parse_output(token: &str) -> Option<ForthValue> {
     match token {
-        "." => Some(ForthValue::Operation(ForthOperation::Output(OutputOperation::Dot))),
-        "EMIT" => Some(ForthValue::Operation(ForthOperation::Output(OutputOperation::Emit))),
-        "CR" => Some(ForthValue::Operation(ForthOperation::Output(OutputOperation::Cr))),
+        "." => Some(ForthValue::Operation(ForthOperation::Output(
+            OutputOperation::Dot,
+        ))),
+        "EMIT" => Some(ForthValue::Operation(ForthOperation::Output(
+            OutputOperation::Emit,
+        ))),
+        "CR" => Some(ForthValue::Operation(ForthOperation::Output(
+            OutputOperation::Cr,
+        ))),
         _ => None,
     }
 }
 
 fn parse_boolean(token: &str) -> Option<ForthValue> {
     match token {
-        "=" => Some(ForthValue::Operation(ForthOperation::Boolean(BooleanOperation::Equal))),
-        "<" => Some(ForthValue::Operation(ForthOperation::Boolean(BooleanOperation::Less))),
-        ">" => Some(ForthValue::Operation(ForthOperation::Boolean(BooleanOperation::Greater))),
-        "AND" => Some(ForthValue::Operation(ForthOperation::Boolean(BooleanOperation::And))),
-        "OR" => Some(ForthValue::Operation(ForthOperation::Boolean(BooleanOperation::Or))),
-        "NOT" => Some(ForthValue::Operation(ForthOperation::Boolean(BooleanOperation::Not))),
+        "=" => Some(ForthValue::Operation(ForthOperation::Boolean(
+            BooleanOperation::Equal,
+        ))),
+        "<" => Some(ForthValue::Operation(ForthOperation::Boolean(
+            BooleanOperation::Less,
+        ))),
+        ">" => Some(ForthValue::Operation(ForthOperation::Boolean(
+            BooleanOperation::Greater,
+        ))),
+        "AND" => Some(ForthValue::Operation(ForthOperation::Boolean(
+            BooleanOperation::And,
+        ))),
+        "OR" => Some(ForthValue::Operation(ForthOperation::Boolean(
+            BooleanOperation::Or,
+        ))),
+        "NOT" => Some(ForthValue::Operation(ForthOperation::Boolean(
+            BooleanOperation::Not,
+        ))),
         _ => None,
     }
 }
 
 fn parse_conditional(token: &str) -> Option<ForthValue> {
     match token {
-        "IF" => Some(ForthValue::Operation(ForthOperation::Conditional(ConditionalOperation::If))),
-        "THEN" => Some(ForthValue::Operation(ForthOperation::Conditional(ConditionalOperation::Then))),
-        "ELSE" => Some(ForthValue::Operation(ForthOperation::Conditional(ConditionalOperation::Else))),
+        "IF" => Some(ForthValue::Operation(ForthOperation::Conditional(
+            ConditionalOperation::If,
+        ))),
+        "THEN" => Some(ForthValue::Operation(ForthOperation::Conditional(
+            ConditionalOperation::Then,
+        ))),
+        "ELSE" => Some(ForthValue::Operation(ForthOperation::Conditional(
+            ConditionalOperation::Else,
+        ))),
         _ => None,
     }
 }
@@ -270,28 +311,41 @@ fn parse_word(token: &str) -> Option<ForthValue> {
     }
 }
 
-
 /*recibe un token y devuelve la operación asociada al mismo.
 si no encuentra una de las instrucciones básicas de forth, se trata de una word o de un número
 */
 fn parse_token(token: &str, dictionary: &WordsDictionary) -> ForthValue {
     if token.starts_with(".\"") {
         let quoted_text = &token[2..];
-        return ForthValue::Operation(ForthOperation::Output(OutputOperation::DotQuote(quoted_text.to_string())));
+        return ForthValue::Operation(ForthOperation::Output(OutputOperation::DotQuote(
+            quoted_text.to_string(),
+        )));
     }
 
     let uppercased_token = token.to_uppercase();
-    
+
     if dictionary.word_already_defined(&uppercased_token) {
         return ForthValue::Word(ForthWord::WordStart(uppercased_token));
     }
 
-    if let Some(value) = parse_arithmetic(&uppercased_token) { return value; }
-    if let Some(value) = parse_stack_op(&uppercased_token) { return value; }
-    if let Some(value) = parse_output(&uppercased_token) { return value; }
-    if let Some(value) = parse_boolean(&uppercased_token) { return value; }
-    if let Some(value) = parse_conditional(&uppercased_token) { return value; }
-    if let Some(value) = parse_word(&uppercased_token) { return value; }
+    if let Some(value) = parse_arithmetic(&uppercased_token) {
+        return value;
+    }
+    if let Some(value) = parse_stack_op(&uppercased_token) {
+        return value;
+    }
+    if let Some(value) = parse_output(&uppercased_token) {
+        return value;
+    }
+    if let Some(value) = parse_boolean(&uppercased_token) {
+        return value;
+    }
+    if let Some(value) = parse_conditional(&uppercased_token) {
+        return value;
+    }
+    if let Some(value) = parse_word(&uppercased_token) {
+        return value;
+    }
 
     match token.parse::<i16>() {
         Ok(num) => ForthValue::Number(num),
@@ -299,14 +353,20 @@ fn parse_token(token: &str, dictionary: &WordsDictionary) -> ForthValue {
     }
 }
 
-
 fn execute_arithmetic_op(op: &ArithmeticOperation, stack: &mut Stack) {
     if let (Some(a), Some(b)) = (stack.pop(), stack.pop()) {
         let result = match op {
             ArithmeticOperation::Add => a + b,
             ArithmeticOperation::Substract => b - a,
             ArithmeticOperation::Multiply => a * b,
-            ArithmeticOperation::Divide => b / a, // asume que a ≠ 0 (manejo de error pendiente)
+            ArithmeticOperation::Divide => {
+                if a != 0 {
+                    b / a
+                } else {
+                    print_error(ForthError::DivisionByZero);
+                    return;
+                }
+            }
         };
         stack.push(result);
     }
@@ -319,9 +379,7 @@ fn execute_stack_op(op: &StackOperation, stack: &mut Stack) {
                 stack.push(*a);
             }
         }
-        StackOperation::Drop => {
-            if let Some(_a) = stack.pop() { }
-        }
+        StackOperation::Drop => if let Some(_a) = stack.pop() {},
         StackOperation::Swap => {
             if let (Some(a), Some(b)) = (stack.pop(), stack.pop()) {
                 stack.push(a);
@@ -367,23 +425,27 @@ fn execute_output_op(op: &OutputOperation, stack: &mut Stack) {
     }
 }
 
-
 fn execute_boolean_op(op: &BooleanOperation, stack: &mut Stack) {
     match op {
-        BooleanOperation::Not => { //la separo porque es la unica que toma un valor (niega el último)
+        BooleanOperation::Not => {
+            //la separo porque es la unica que toma un valor (niega el último)
             if let Some(a) = stack.pop() {
                 stack.push(if a != 0 { 0 } else { -1 });
             }
-        },
+        }
         _ => {
-            if let (Some(a), Some(b)) = (stack.pop(), stack.pop()) { // lo junto porque todas toman dos valores
+            if let (Some(a), Some(b)) = (stack.pop(), stack.pop()) {
+                // lo junto porque todas toman dos valores
                 let result = match op {
                     BooleanOperation::Equal => a == b,
                     BooleanOperation::Greater => a < b,
                     BooleanOperation::Less => a > b,
                     BooleanOperation::And => a == -1 && b == -1,
                     BooleanOperation::Or => a == -1 || b == -1,
-                    _ => false, //nunca deberia llegar acá
+                    _ => {
+                        print_error(ForthError::Generic("Unknown boolean operation"));
+                        false
+                    }
                 };
                 stack.push(if result { -1 } else { 0 });
             }
@@ -391,44 +453,64 @@ fn execute_boolean_op(op: &BooleanOperation, stack: &mut Stack) {
     }
 }
 
-fn execute_conditional_op(op: &ConditionalOperation, stack: &mut Stack, execution_mode: &mut ExecutionMode) {
+fn execute_conditional_op(
+    op: &ConditionalOperation,
+    stack: &mut Stack,
+    execution_mode: &mut Vec<ExecutionMode>,
+) {
     match op {
         ConditionalOperation::If => {
             if let Some(condition) = stack.pop() {
                 if condition == 0 {
-                    *execution_mode = ExecutionMode::SkippingIf;
+                    execution_mode.push(ExecutionMode::Skipping(1));
                 } else {
-                    *execution_mode = ExecutionMode::Executing;
+                    execution_mode.push(ExecutionMode::Executing);
                 }
             } else {
-                println!("Error: pila vacía en IF.");//stack underflow
+                print_error(ForthError::StackUnderflow);
             }
         }
         ConditionalOperation::Else => {
-            match execution_mode {
-                ExecutionMode::Executing => {
-                    *execution_mode = ExecutionMode::SkippingElse;
+            if let Some(last) = execution_mode.last_mut() {
+                match last {
+                    ExecutionMode::Executing => {
+                        *last = ExecutionMode::Skipping(1);
+                    }
+                    ExecutionMode::Skipping(depth) => {
+                        if *depth == 1 {
+                            if let Some(mode) = execution_mode.last_mut() {
+                                *mode = ExecutionMode::Executing;
+                            }
+                        }
+                    }
                 }
-                ExecutionMode::SkippingIf => {
-                    *execution_mode = ExecutionMode::Executing;
-                }
-                _ => {}
             }
         }
         ConditionalOperation::Then => {
-            *execution_mode = ExecutionMode::Executing;
+            if let Some(last) = execution_mode.last_mut() {
+                match last {
+                    ExecutionMode::Skipping(depth) => {
+                        if *depth > 1 {
+                            *depth -= 1;
+                        } else {
+                            execution_mode.pop();
+                        }
+                    }
+                    _ => {
+                        execution_mode.pop();
+                    }
+                }
+            }
         }
     }
 }
 
-
-
 fn execute_other_operations(
-    val: &ForthValue, 
-    stack: &mut Stack, 
-    dictionary: &WordsDictionary, 
-    current_word: Option<String>, 
-    executed_words: &mut Vec<String>
+    val: &ForthValue,
+    stack: &mut Stack,
+    dictionary: &WordsDictionary,
+    current_word: Option<String>,
+    executed_words: &mut Vec<String>,
 ) {
     match val {
         ForthValue::Operation(ForthOperation::Arithmetic(op)) => execute_arithmetic_op(op, stack),
@@ -439,103 +521,125 @@ fn execute_other_operations(
         ForthValue::Word(ForthWord::WordStart(word_name)) => {
             if let Some(ref current) = current_word {
                 if current == word_name {
-                    println!("Error: palabra '{}' está auto-referenciada, causando un ciclo infinito.", word_name);
                     return;
                 }
             }
 
             if let Some(definition) = dictionary.get_word(word_name) {
-                let mut mode = ExecutionMode::Executing;
+                let mut execution_mode_stack = vec![ExecutionMode::Executing];
                 for val in definition {
-                    execute_instruction(val, stack, dictionary, &mut mode, Some(word_name.to_string()), executed_words);
+                    execute_instruction(
+                        val,
+                        stack,
+                        dictionary,
+                        &mut execution_mode_stack,
+                        Some(word_name.to_string()),
+                        executed_words,
+                    );
                 }
             } else {
-                println!("Error: palabra no definida '{}'", word_name);
+                print_error(ForthError::UnknownWord);
             }
         }
         _ => {}
     }
 }
 
-
-
-
 fn execute_instruction(
-    val: &ForthValue, 
-    stack: &mut Stack, 
-    dictionary: &WordsDictionary, 
-    execution_mode: &mut ExecutionMode, 
+    val: &ForthValue,
+    stack: &mut Stack,
+    dictionary: &WordsDictionary,
+    execution_mode: &mut Vec<ExecutionMode>,
     current_word: Option<String>,
     executed_words: &mut Vec<String>,
 ) {
-    match execution_mode {
-        ExecutionMode::Executing => {
-            match val {
-                ForthValue::Word(ForthWord::WordStart(word_name)) => {
-                    if executed_words.contains(word_name) {
-                        println!("Error: Recursión infinita detectada en '{}'", word_name);
-                        return;
+    match execution_mode.last().unwrap_or(&ExecutionMode::Executing) {
+        ExecutionMode::Executing => match val {
+            ForthValue::Word(ForthWord::WordStart(word_name)) => {
+                if executed_words.contains(word_name) {
+                    return;
+                }
+
+                executed_words.push(word_name.to_string());
+
+                if let Some(definition) = dictionary.get_word(word_name) {
+                    let mut mode_stack = vec![ExecutionMode::Executing];
+                    for val in definition {
+                        execute_instruction(
+                            val,
+                            stack,
+                            dictionary,
+                            &mut mode_stack,
+                            Some(word_name.to_string()),
+                            executed_words,
+                        );
                     }
+                } else {
+                    print_error(ForthError::UnknownWord);
+                }
 
-                    executed_words.push(word_name.to_string());
-
-                    if let Some(definition) = dictionary.get_word(word_name) {
-                        let mut mode = ExecutionMode::Executing;
-                        for val in definition {
-                            execute_instruction(val, stack, dictionary, &mut mode, Some(word_name.to_string()), executed_words);
+                executed_words.pop();
+            }
+            ForthValue::Operation(ForthOperation::Conditional(op)) => {
+                execute_conditional_op(op, stack, execution_mode);
+            }
+            _ => execute_other_operations(val, stack, dictionary, current_word, executed_words),
+        },
+        ExecutionMode::Skipping(_depth) => match val {
+            ForthValue::Operation(ForthOperation::Conditional(ConditionalOperation::Then)) => {
+                if let Some(ExecutionMode::Skipping(current_depth)) = execution_mode.last_mut() {
+                    if *current_depth > 1 {
+                        *current_depth -= 1;
+                    } else {
+                        execution_mode.pop();
+                    }
+                }
+            }
+            ForthValue::Operation(ForthOperation::Conditional(ConditionalOperation::Else)) => {
+                if let Some(ExecutionMode::Skipping(depth)) = execution_mode.last_mut() {
+                    if *depth == 1 {
+                        if let Some(last) = execution_mode.last_mut() {
+                            *last = ExecutionMode::Executing;
                         }
-                    } else {
-                        println!("Error: palabra no definida '{}'", word_name);
-                    }
-
-                    executed_words.pop();
-                }
-                ForthValue::Operation(ForthOperation::Conditional(val)) => {
-                    execute_conditional_op(val, stack, execution_mode)
-                }
-                _ => execute_other_operations(val, stack, dictionary, current_word, executed_words),
-            }
-        }
-        ExecutionMode::SkippingIf | ExecutionMode::SkippingElse => {
-            match val {
-                ForthValue::Operation(ForthOperation::Conditional(ConditionalOperation::Then)) => {
-                    *execution_mode = ExecutionMode::Executing;
-                }
-                ForthValue::Operation(ForthOperation::Conditional(ConditionalOperation::Else)) => {
-                    if *execution_mode == ExecutionMode::SkippingIf {
-                        *execution_mode = ExecutionMode::Executing;
-                    } else {
-                        *execution_mode = ExecutionMode::SkippingElse;
                     }
                 }
-                _ => {}
             }
-        }
+            ForthValue::Operation(ForthOperation::Conditional(ConditionalOperation::If)) => {
+                if let Some(ExecutionMode::Skipping(depth)) = execution_mode.last_mut() {
+                    *depth += 1;
+                }
+            }
+            _ => {}
+        },
     }
 }
 
-
-
-fn handle_word_definition<'a>(tokens: &'a [String], i: &mut usize, flag: &mut bool, name: &mut &'a str, definition: &mut Vec<ForthValue>) {
+fn handle_word_definition<'a>(
+    tokens: &'a [String],
+    i: &mut usize,
+    flag: &mut bool,
+    name: &mut &'a str,
+    definition: &mut Vec<ForthValue>,
+) {
     if *flag {
-        println!("Error: ya se está definiendo una palabra.");
+        print_error(ForthError::InvalidWord);
         return;
     }
 
     if *i + 1 >= tokens.len() {
-        println!("Error: falta nombre de la palabra después de ':'");
+        print_error(ForthError::InvalidWord);
         return;
     }
 
     let word_name = &tokens[*i + 1];
 
     if word_name.parse::<i16>().is_ok() {
-        println!("Error: el nombre de la palabra no puede ser numérico.");
+        print_error(ForthError::InvalidWord);
         return;
     }
 
     *flag = true;
-    *name = &tokens[*i + 1];
+    *name = word_name;
     definition.clear();
     *i += 1;
 }
@@ -582,25 +686,25 @@ fn get_copy_forth_value(value: &ForthValue) -> ForthValue {
             ForthWord::WordEnd => ForthWord::WordEnd,
         }),
         ForthValue::Number(n) => ForthValue::Number(*n),
-        ForthValue::Unknown(s) => ForthValue::Unknown(s.to_string()),
     }
 }
 
-
-
-fn handle_word_end(flag: &mut bool, name: &str, definition: &mut Vec<ForthValue>, dictionary: &mut WordsDictionary) {
+fn handle_word_end(
+    flag: &mut bool,
+    name: &str,
+    definition: &mut Vec<ForthValue>,
+    dictionary: &mut WordsDictionary,
+) {
     if *flag {
-        let mut new_definition = Vec::new();
-
+        let mut new_definition = Vec::with_capacity(definition.len());
         while let Some(item) = definition.pop() {
             new_definition.insert(0, item);
         }
-
-        let mut final_definition: Vec<ForthValue> = Vec::new();
-        for val in new_definition.into_iter() {
-            if let ForthValue::Word(ForthWord::WordStart(word_name)) = &val {
+        let mut final_definition = Vec::with_capacity(new_definition.len());
+        for val in new_definition {
+            if let ForthValue::Word(ForthWord::WordStart(ref word_name)) = val {
                 if let Some(referenced_definition) = dictionary.get_word(word_name) {
-                    for word_val in referenced_definition.iter() {
+                    for word_val in referenced_definition {
                         final_definition.push(get_copy_forth_value(word_val));
                     }
                     continue;
@@ -608,7 +712,6 @@ fn handle_word_end(flag: &mut bool, name: &str, definition: &mut Vec<ForthValue>
             }
             final_definition.push(val);
         }
-
         if dictionary.word_already_defined(name) {
             if let Some(existing_definition) = dictionary.get_word_mut(name) {
                 *existing_definition = final_definition;
@@ -616,29 +719,34 @@ fn handle_word_end(flag: &mut bool, name: &str, definition: &mut Vec<ForthValue>
         } else {
             dictionary.add_word(name, final_definition);
         }
-
         *flag = false;
     } else {
-        println!("Error: ';' sin inicio de definición.");
+        print_error(ForthError::InvalidWord);
     }
 }
 
-
 fn handle_other_token(
-    value: ForthValue, 
-    flag_defining_word: bool, 
-    definition: &mut Vec<ForthValue>, 
-    stack: &mut Stack, 
+    value: ForthValue,
+    flag_defining_word: bool,
+    definition: &mut Vec<ForthValue>,
+    stack: &mut Stack,
     dictionary: &mut WordsDictionary,
-    executed_words: &mut Vec<String>
+    executed_words: &mut Vec<String>,
+    execution_mode_stack: &mut Vec<ExecutionMode>,
 ) {
     if flag_defining_word {
         definition.push(value);
     } else {
-        execute_instruction(&value, stack, dictionary, &mut ExecutionMode::Executing, None, executed_words);
+        execute_instruction(
+            &value,
+            stack,
+            dictionary,
+            execution_mode_stack,
+            None,
+            executed_words,
+        );
     }
 }
-
 
 /*función para leer los tokens.
 realizando pattern matching se verifica si es una word, cuyo comportamiento se define aparte de las operaciones convencionales.
@@ -650,62 +758,90 @@ fn read_tokens(tokens: &[String], stack: &mut Stack, dictionary: &mut WordsDicti
     let mut current_word_name = "";
     let mut current_definition = Vec::new();
     let mut executed_words = Vec::new();
-    
+    let mut execution_mode_stack = vec![ExecutionMode::Executing];
+
     while i < tokens.len() {
         let value = parse_token(&tokens[i], &dictionary);
-
         match &value {
             ForthValue::Word(ForthWord::WordDefinition) => {
-                handle_word_definition(tokens, &mut i, &mut flag_defining_word, &mut current_word_name, &mut current_definition);
-                if !flag_defining_word { return; }
+                handle_word_definition(
+                    tokens,
+                    &mut i,
+                    &mut flag_defining_word,
+                    &mut current_word_name,
+                    &mut current_definition,
+                );
+                if !flag_defining_word {
+                    return;
+                }
             }
             ForthValue::Word(ForthWord::WordEnd) => {
-                handle_word_end(&mut flag_defining_word, &current_word_name, &mut current_definition, dictionary);
-                if flag_defining_word { flag_defining_word = false; }
-                else { return; }
+                handle_word_end(
+                    &mut flag_defining_word,
+                    &current_word_name,
+                    &mut current_definition,
+                    dictionary,
+                );
+                if flag_defining_word {
+                    flag_defining_word = false;
+                } else {
+                    return;
+                }
             }
             _ => {
-                handle_other_token(value, flag_defining_word, &mut current_definition, stack, dictionary, &mut executed_words);
+                handle_other_token(
+                    value,
+                    flag_defining_word,
+                    &mut current_definition,
+                    stack,
+                    dictionary,
+                    &mut executed_words,
+                    &mut execution_mode_stack,
+                );
             }
         }
 
         i += 1;
     }
 
-    if flag_defining_word { println!("Error: falta ';'"); }
+    if flag_defining_word {
+        print_error(ForthError::InvalidWord);
+    }
 }
-
-
 
 fn main() {
     println!("----- Intérprete básico de Forth -----");
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
-        println!("Error de lectura. Se espera el siguiente formato: cargo run -- ruta/a/main.fth [stack-size]");
+        print_error(ForthError::WrongInput);
         return;
     }
-
-    println!("Argumentos: {args:#?}");
     let size: Option<&String> = args.get(2);
     let st = String::from(DEFAULT_STACK_SIZE_AS_STR);
     let size = size.unwrap_or(&st);
     let size: usize = match size.trim().parse() {
         Ok(sz) => sz,
-        Err(_) => DEFAULT_STACK_SIZE
+        Err(_) => DEFAULT_STACK_SIZE,
     };
     let mut stack = Stack::new(size);
     let mut words_dictionary = WordsDictionary::new();
-
     if let Ok(lines) = read_file(&args[1]) {
         for line in lines {
             let tokens = tokenize(&line);
             read_tokens(&tokens, &mut stack, &mut words_dictionary);
         }
         match stack.write_into_file() {
-            Ok(_) => { println!("Stack restante ({:?}) escrito en {}!", stack.0, STACK_REST_PATHNAME); }
-            Err(_) => { println!("Ocurrió un error al escribir el stack"); }
+            Ok(_) => {
+                println!(
+                    "Stack restante ({:?}) escrito en {}!",
+                    stack.0, STACK_REST_PATHNAME
+                );
+            }
+            Err(_) => {
+                print_error(ForthError::Generic("Impossible to write stack"));
+            }
         }
     } else {
-        println!("Error al leer el archivo .fth");
+        print_error(ForthError::Generic("Impossible to read file.fth"));
     }
 }
