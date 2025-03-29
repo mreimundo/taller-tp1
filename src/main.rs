@@ -8,7 +8,6 @@ use std::iter::Peekable;
 use std::str::Chars;
 
 const DEFAULT_STACK_SIZE: usize = 1024 * 128; //128KB
-const DEFAULT_STACK_SIZE_AS_STR: &'static str = "131072"; //128KB en string
 const STACK_REST_PATHNAME: &'static str = "stack.fth";
 
 /*-------------- TODO CHECKLIST --------------
@@ -93,34 +92,41 @@ enum ExecutionMode {
 }
 
 #[derive(Debug)]
-struct Stack(Vec<i16>);
+struct Stack {
+    data: Vec<i16>,
+    max_elements: usize,
+}
 
 impl Stack {
     fn new(size: usize) -> Self {
-        Stack(Vec::with_capacity(size))
+        let max_elements = size / 2;
+        Stack {
+            data: Vec::with_capacity(max_elements),
+            max_elements,
+        }
     }
 
-    fn push(&mut self, value: i16) {
-        self.0.push(value);
+    fn push(&mut self, value: i16) -> Result<(), ForthError> {
+        if self.data.len() >= self.max_elements {
+            Err(ForthError::StackOverflow)
+        } else {
+            self.data.push(value);
+            Ok(())
+        }
     }
 
-    fn pop(&mut self) -> Option<i16> {
-        self.0.pop()
+    fn pop(&mut self) -> Result<i16, ForthError> {
+        self.data.pop().ok_or(ForthError::StackUnderflow)
     }
 
-    fn peek(&self) -> Option<&i16> {
-        self.0.last()
+    fn peek(&self) -> Result<&i16, ForthError> {
+        self.data.last().ok_or(ForthError::StackUnderflow)
     }
 
     fn write_into_file(&mut self) -> io::Result<bool> {
-        let stack_results: Vec<String> = self.0.iter().map(|&item| item.to_string()).collect();
-
-        let result = fs::write(STACK_REST_PATHNAME, stack_results.join(" "));
-
-        match result {
-            Ok(_) => Ok(true),
-            Err(e) => Err(e),
-        }
+        let stack_results: Vec<String> = self.data.iter().map(|&item| item.to_string()).collect();
+        fs::write(STACK_REST_PATHNAME, stack_results.join(" "))?;
+        Ok(true)
     }
 }
 
@@ -354,50 +360,137 @@ fn parse_token(token: &str, dictionary: &WordsDictionary) -> ForthValue {
 }
 
 fn execute_arithmetic_op(op: &ArithmeticOperation, stack: &mut Stack) {
-    if let (Some(a), Some(b)) = (stack.pop(), stack.pop()) {
-        let result = match op {
-            ArithmeticOperation::Add => a + b,
-            ArithmeticOperation::Substract => b - a,
-            ArithmeticOperation::Multiply => a * b,
-            ArithmeticOperation::Divide => {
-                if a != 0 {
-                    b / a
-                } else {
-                    print_error(ForthError::DivisionByZero);
-                    return;
-                }
+    let a = match stack.pop() {
+        Ok(val) => val,
+        Err(e) => {
+            print_error(e);
+            return;
+        }
+    };
+    let b = match stack.pop() {
+        Ok(val) => val,
+        Err(e) => {
+            print_error(e);
+            return;
+        }
+    };
+
+    let result = match op {
+        ArithmeticOperation::Add => a + b,
+        ArithmeticOperation::Substract => b - a,
+        ArithmeticOperation::Multiply => a * b,
+        ArithmeticOperation::Divide => {
+            if a != 0 {
+                b / a
+            } else {
+                print_error(ForthError::DivisionByZero);
+                return;
             }
-        };
-        stack.push(result);
+        }
+    };
+
+    if let Err(e) = stack.push(result) {
+        print_error(e);
     }
 }
 
 fn execute_stack_op(op: &StackOperation, stack: &mut Stack) {
     match op {
-        StackOperation::Duplicate => {
-            if let Some(a) = stack.peek() {
-                stack.push(*a);
+        StackOperation::Duplicate => match stack.peek() {
+            Ok(a) => {
+                if let Err(e) = stack.push(*a) {
+                    print_error(e);
+                }
+            }
+            Err(e) => print_error(e),
+        },
+        StackOperation::Drop => {
+            if let Err(e) = stack.pop() {
+                print_error(e);
             }
         }
-        StackOperation::Drop => if let Some(_a) = stack.pop() {},
         StackOperation::Swap => {
-            if let (Some(a), Some(b)) = (stack.pop(), stack.pop()) {
-                stack.push(a);
-                stack.push(b);
+            let a = match stack.pop() {
+                Ok(val) => val,
+                Err(e) => {
+                    print_error(e);
+                    return;
+                }
+            };
+            let b = match stack.pop() {
+                Ok(val) => val,
+                Err(e) => {
+                    print_error(e);
+                    return;
+                }
+            };
+            if let Err(e) = stack.push(a) {
+                print_error(e);
+                return;
+            }
+            if let Err(e) = stack.push(b) {
+                print_error(e);
             }
         }
         StackOperation::Over => {
-            if let (Some(a), Some(b)) = (stack.pop(), stack.pop()) {
-                stack.push(b);
-                stack.push(a);
-                stack.push(b);
+            let a = match stack.pop() {
+                Ok(val) => val,
+                Err(e) => {
+                    print_error(e);
+                    return;
+                }
+            };
+            let b = match stack.pop() {
+                Ok(val) => val,
+                Err(e) => {
+                    print_error(e);
+                    return;
+                }
+            };
+            if let Err(e) = stack.push(b) {
+                print_error(e);
+                return;
+            }
+            if let Err(e) = stack.push(a) {
+                print_error(e);
+                return;
+            }
+            if let Err(e) = stack.push(b) {
+                print_error(e);
             }
         }
         StackOperation::Rotate => {
-            if let (Some(a), Some(b), Some(c)) = (stack.pop(), stack.pop(), stack.pop()) {
-                stack.push(b);
-                stack.push(a);
-                stack.push(c);
+            let a = match stack.pop() {
+                Ok(val) => val,
+                Err(e) => {
+                    print_error(e);
+                    return;
+                }
+            };
+            let b = match stack.pop() {
+                Ok(val) => val,
+                Err(e) => {
+                    print_error(e);
+                    return;
+                }
+            };
+            let c = match stack.pop() {
+                Ok(val) => val,
+                Err(e) => {
+                    print_error(e);
+                    return;
+                }
+            };
+            if let Err(e) = stack.push(b) {
+                print_error(e);
+                return;
+            }
+            if let Err(e) = stack.push(a) {
+                print_error(e);
+                return;
+            }
+            if let Err(e) = stack.push(c) {
+                print_error(e);
             }
         }
     }
@@ -405,20 +498,20 @@ fn execute_stack_op(op: &StackOperation, stack: &mut Stack) {
 
 fn execute_output_op(op: &OutputOperation, stack: &mut Stack) {
     match op {
-        OutputOperation::Dot => {
-            if let Some(a) = stack.pop() {
-                println!("{a}");
-            }
-        }
+        OutputOperation::Dot => match stack.pop() {
+            Ok(a) => println!("{a}"),
+            Err(e) => print_error(e),
+        },
         OutputOperation::Cr => {
             println!();
         }
-        OutputOperation::Emit => {
-            if let Some(a) = stack.pop() {
+        OutputOperation::Emit => match stack.pop() {
+            Ok(a) => {
                 let ascii = a as u8;
                 println!("{}", ascii as char);
             }
-        }
+            Err(e) => print_error(e),
+        },
         OutputOperation::DotQuote(text) => {
             println!("{text}");
         }
@@ -427,27 +520,43 @@ fn execute_output_op(op: &OutputOperation, stack: &mut Stack) {
 
 fn execute_boolean_op(op: &BooleanOperation, stack: &mut Stack) {
     match op {
-        BooleanOperation::Not => {
-            //la separo porque es la unica que toma un valor (niega el último)
-            if let Some(a) = stack.pop() {
-                stack.push(if a != 0 { 0 } else { -1 });
+        BooleanOperation::Not => match stack.pop() {
+            Ok(a) => {
+                let result = if a != 0 { 0 } else { -1 };
+                if let Err(e) = stack.push(result) {
+                    print_error(e);
+                }
             }
-        }
+            Err(e) => print_error(e),
+        },
         _ => {
-            if let (Some(a), Some(b)) = (stack.pop(), stack.pop()) {
-                // lo junto porque todas toman dos valores
-                let result = match op {
-                    BooleanOperation::Equal => a == b,
-                    BooleanOperation::Greater => a < b,
-                    BooleanOperation::Less => a > b,
-                    BooleanOperation::And => a == -1 && b == -1,
-                    BooleanOperation::Or => a == -1 || b == -1,
-                    _ => {
-                        print_error(ForthError::Generic("Unknown boolean operation"));
-                        false
-                    }
-                };
-                stack.push(if result { -1 } else { 0 });
+            let a = match stack.pop() {
+                Ok(val) => val,
+                Err(e) => {
+                    print_error(e);
+                    return;
+                }
+            };
+            let b = match stack.pop() {
+                Ok(val) => val,
+                Err(e) => {
+                    print_error(e);
+                    return;
+                }
+            };
+            let result = match op {
+                BooleanOperation::Equal => a == b,
+                BooleanOperation::Greater => a < b,
+                BooleanOperation::Less => a > b,
+                BooleanOperation::And => a == -1 && b == -1,
+                BooleanOperation::Or => a == -1 || b == -1,
+                _ => {
+                    print_error(ForthError::Generic("Unknown boolean operation"));
+                    false
+                }
+            };
+            if let Err(e) = stack.push(if result { -1 } else { 0 }) {
+                print_error(e);
             }
         }
     }
@@ -459,17 +568,16 @@ fn execute_conditional_op(
     execution_mode: &mut Vec<ExecutionMode>,
 ) {
     match op {
-        ConditionalOperation::If => {
-            if let Some(condition) = stack.pop() {
+        ConditionalOperation::If => match stack.pop() {
+            Ok(condition) => {
                 if condition == 0 {
                     execution_mode.push(ExecutionMode::Skipping(1));
                 } else {
                     execution_mode.push(ExecutionMode::Executing);
                 }
-            } else {
-                print_error(ForthError::StackUnderflow);
             }
-        }
+            Err(e) => print_error(e),
+        },
         ConditionalOperation::Else => {
             if let Some(last) = execution_mode.last_mut() {
                 match last {
@@ -517,7 +625,11 @@ fn execute_other_operations(
         ForthValue::Operation(ForthOperation::StackTypeOp(op)) => execute_stack_op(op, stack),
         ForthValue::Operation(ForthOperation::Output(op)) => execute_output_op(op, stack),
         ForthValue::Operation(ForthOperation::Boolean(op)) => execute_boolean_op(op, stack),
-        ForthValue::Number(n) => stack.push(*n),
+        ForthValue::Number(n) => {
+            if let Err(e) = stack.push(*n) {
+                print_error(e);
+            }
+        }
         ForthValue::Word(ForthWord::WordStart(word_name)) => {
             if let Some(ref current) = current_word {
                 if current == word_name {
@@ -816,30 +928,27 @@ fn main() {
         print_error(ForthError::WrongInput);
         return;
     }
-    let size: Option<&String> = args.get(2);
-    let st = String::from(DEFAULT_STACK_SIZE_AS_STR);
-    let size = size.unwrap_or(&st);
-    let size: usize = match size.trim().parse() {
-        Ok(sz) => sz,
-        Err(_) => DEFAULT_STACK_SIZE,
-    };
-    let mut stack = Stack::new(size);
+
+    let size_bytes = args
+        .get(2)
+        .and_then(|s| s.trim().parse().ok())
+        .unwrap_or(DEFAULT_STACK_SIZE);
+
+    let mut stack = Stack::new(size_bytes);
     let mut words_dictionary = WordsDictionary::new();
+
     if let Ok(lines) = read_file(&args[1]) {
         for line in lines {
             let tokens = tokenize(&line);
             read_tokens(&tokens, &mut stack, &mut words_dictionary);
         }
+
         match stack.write_into_file() {
-            Ok(_) => {
-                println!(
-                    "Stack restante ({:?}) escrito en {}!",
-                    stack.0, STACK_REST_PATHNAME
-                );
-            }
-            Err(_) => {
-                print_error(ForthError::Generic("Impossible to write stack"));
-            }
+            Ok(_) => println!(
+                "Stack restante ({:?}) escrito en {}!",
+                stack.data, STACK_REST_PATHNAME
+            ),
+            Err(_) => print_error(ForthError::Generic("Impossible to write stack")),
         }
     } else {
         print_error(ForthError::Generic("Impossible to read file.fth"));

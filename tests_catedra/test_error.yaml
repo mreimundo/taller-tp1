@@ -82,7 +82,7 @@
   expected_output: "stack-underflow\n"
   expected_stack: []
 
-- name: "division by zero (CORREGIR)"
+- name: "division by zero"
   code: |
     4 0 /
   expected_output: "division-by-zero\n"
@@ -106,7 +106,7 @@
   expected_output: "?\n"
   expected_stack: []
 
-- name: "limited stack (CHEQUEAR)"
+- name: "limited stack"
   stack_size: 10
   code: |
     1 2 3 4 5

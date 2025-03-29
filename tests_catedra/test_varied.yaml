@@ -76,7 +76,7 @@
     mul4
   expected_stack: [1024]
 
-- name: "digit to string"
+- name: "digit to string (SOLO INLINE)"
   code: |
     : f
       dup 0 = if

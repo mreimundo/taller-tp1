@@ -11,7 +11,7 @@
     0 f
   expected_stack: [2, 3]
 
-- name: "nested if (NO ANDA)"
+- name: "nested if (SOLO INLINE)"
   code: |
     : f
       if
@@ -24,7 +24,7 @@
     0 0 f
   expected_stack: [1, 2, 3]
 
-- name: "nested if else (INLINE ANDA, SINO NO)"
+- name: "nested if else (SOLO INLINE)"
   code: |
     : f
       dup 0 = if
