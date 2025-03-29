@@ -26,7 +26,7 @@ pub fn tokenize_dot_quote(chars: &mut Peekable<Chars>, tokens: &mut Vec<String>)
         chars.next();
     }
 
-    while let Some(c) = chars.next() {
+    for c in chars.by_ref() {
         if c == '"' {
             break;
         }
@@ -73,8 +73,7 @@ pub fn tokenize(input: &str) -> Vec<String> {
 si no encuentra una de las instrucciones básicas de forth, se trata de una word o de un número
 */
 pub fn parse_token(token: &str, dictionary: &WordsDictionary) -> ForthValue {
-    if token.starts_with(".\"") {
-        let quoted_text = &token[2..];
+    if let Some(quoted_text) = token.strip_prefix(".\"") {
         return ForthValue::Operation(ForthOperation::Output(OutputOperation::DotQuote(
             quoted_text.to_string(),
         )));
@@ -83,7 +82,7 @@ pub fn parse_token(token: &str, dictionary: &WordsDictionary) -> ForthValue {
     let uppercased_token = token.to_uppercase();
 
     if dictionary.word_already_defined(&uppercased_token) {
-        return ForthValue::Word(ForthWord::WordStart(uppercased_token));
+        return ForthValue::Word(ForthWord::Start(uppercased_token));
     }
 
     if let Some(value) = parse_arithmetic(&uppercased_token) {
@@ -107,7 +106,7 @@ pub fn parse_token(token: &str, dictionary: &WordsDictionary) -> ForthValue {
 
     match token.parse::<i16>() {
         Ok(num) => ForthValue::Number(num),
-        Err(_) => ForthValue::Word(ForthWord::WordStart(uppercased_token)),
+        Err(_) => ForthValue::Word(ForthWord::Start(uppercased_token)),
     }
 }
 
@@ -147,9 +146,9 @@ pub fn read_tokens(tokens: &[String], stack: &mut Stack, dictionary: &mut WordsD
     let mut execution_mode_stack = vec![ExecutionStage::Executing];
 
     while i < tokens.len() {
-        let value = parse_token(&tokens[i], &dictionary);
+        let value = parse_token(&tokens[i], dictionary);
         match &value {
-            ForthValue::Word(ForthWord::WordDefinition) => {
+            ForthValue::Word(ForthWord::Definition) => {
                 handle_word_definition(
                     tokens,
                     &mut i,
@@ -161,10 +160,10 @@ pub fn read_tokens(tokens: &[String], stack: &mut Stack, dictionary: &mut WordsD
                     return;
                 }
             }
-            ForthValue::Word(ForthWord::WordEnd) => {
+            ForthValue::Word(ForthWord::End) => {
                 handle_word_end(
                     &mut flag_defining_word,
-                    &current_word_name,
+                    current_word_name,
                     &mut current_definition,
                     dictionary,
                 );

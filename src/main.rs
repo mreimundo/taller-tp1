@@ -17,7 +17,6 @@ const DEFAULT_STACK_SIZE: usize = 1024 * 128; //128KB
 
 /*-------------- TODO CHECKLIST --------------
 - Tests: a la misma altura que src pero en módulos apartes tipo crate. Implementarlos usando #[cfg(test)] en c/u. No se testea main.rs
-- cargo fmt y cargo clippy (fix warnings)
 - completar cargo doc
 - Probar compilación y ejecución en una distro de linux. Validar todos los casos posibles
 - Reducir líneas de algunas funciones
@@ -34,10 +33,12 @@ fn interpret_forth_file(filename: &str, stack: &mut Stack, dictionary: &mut Word
 
             match stack.write_into_file() {
                 Ok(_) => println!("Stack restante ({:?}) escrito en stack.fth!", stack.data),
-                Err(_) => print_error(ForthError::Generic("Impossible to write stack")),
+                Err(_) => print_error(ForthError::Generic("Impossible to write stack".to_string())),
             }
         }
-        Err(_) => print_error(ForthError::Generic("Impossible to read file.fth")),
+        Err(_) => print_error(ForthError::Generic(
+            "Impossible to read file.fth".to_string(),
+        )),
     }
 }
 

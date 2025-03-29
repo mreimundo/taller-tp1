@@ -1,7 +1,7 @@
 use crate::errors::ForthError;
 use std::{fs, io};
 
-const STACK_REST_PATHNAME: &'static str = "stack.fth";
+const STACK_REST_PATHNAME: &str = "stack.fth";
 
 #[derive(Debug)]
 pub struct Stack {

@@ -19,7 +19,7 @@ pub enum ForthError {
     DivisionByZero,
     UnknownWord,
     WrongInput,
-    Generic(&'static str),
+    Generic(String),
 }
 
 pub fn print_error(error: ForthError) {
@@ -38,7 +38,7 @@ impl Display for ForthError {
                 f,
                 "wrong-input. Try executing with format: cargo run -- path/to/main.fth [stack-size]"
             ),
-            ForthError::Generic(value) => write!(f, "[ERROR]: {}", value.to_string()),
+            ForthError::Generic(value) => write!(f, "[ERROR]: {value}"),
         }
     }
 }

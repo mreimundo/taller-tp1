@@ -7,9 +7,9 @@ use crate::{
 
 #[derive(Debug)]
 pub enum ForthWord {
-    WordStart(String),
-    WordDefinition,
-    WordEnd,
+    Start(String),
+    Definition,
+    End,
 }
 
 pub fn handle_word_definition<'a>(
@@ -55,7 +55,7 @@ pub fn handle_word_end(
         }
         let mut final_definition = Vec::with_capacity(new_definition.len());
         for val in new_definition {
-            if let ForthValue::Word(ForthWord::WordStart(ref word_name)) = val {
+            if let ForthValue::Word(ForthWord::Start(ref word_name)) = val {
                 if let Some(referenced_definition) = dictionary.get_word(word_name) {
                     for word_val in referenced_definition {
                         final_definition.push(get_copy_forth_value(word_val));
@@ -80,8 +80,8 @@ pub fn handle_word_end(
 
 pub fn parse_word(token: &str) -> Option<ForthValue> {
     match token {
-        ":" => Some(ForthValue::Word(ForthWord::WordDefinition)),
-        ";" => Some(ForthValue::Word(ForthWord::WordEnd)),
+        ":" => Some(ForthValue::Word(ForthWord::Definition)),
+        ";" => Some(ForthValue::Word(ForthWord::End)),
         _ => None,
     }
 }

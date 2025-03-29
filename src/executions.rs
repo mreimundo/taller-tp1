@@ -207,7 +207,7 @@ pub fn execute_boolean_op(op: &BooleanOperation, stack: &mut Stack) {
                 BooleanOperation::And => a == -1 && b == -1,
                 BooleanOperation::Or => a == -1 || b == -1,
                 _ => {
-                    print_error(ForthError::Generic("Unknown boolean operation"));
+                    print_error(ForthError::Generic("Unknown boolean operation".to_string()));
                     false
                 }
             };
@@ -286,7 +286,7 @@ pub fn execute_other_operations(
                 print_error(e);
             }
         }
-        ForthValue::Word(ForthWord::WordStart(word_name)) => {
+        ForthValue::Word(ForthWord::Start(word_name)) => {
             if let Some(ref current) = current_word {
                 if current == word_name {
                     return;
@@ -323,7 +323,7 @@ pub fn execute_instruction(
 ) {
     match execution_mode.last().unwrap_or(&ExecutionStage::Executing) {
         ExecutionStage::Executing => match val {
-            ForthValue::Word(ForthWord::WordStart(word_name)) => {
+            ForthValue::Word(ForthWord::Start(word_name)) => {
                 if executed_words.contains(word_name) {
                     return;
                 }

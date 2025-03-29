@@ -43,9 +43,9 @@ pub fn get_copy_forth_value(value: &ForthValue) -> ForthValue {
             }),
         }),
         ForthValue::Word(w) => ForthValue::Word(match w {
-            ForthWord::WordStart(s) => ForthWord::WordStart(s.to_string()),
-            ForthWord::WordDefinition => ForthWord::WordDefinition,
-            ForthWord::WordEnd => ForthWord::WordEnd,
+            ForthWord::Start(s) => ForthWord::Start(s.to_string()),
+            ForthWord::Definition => ForthWord::Definition,
+            ForthWord::End => ForthWord::End,
         }),
         ForthValue::Number(n) => ForthValue::Number(*n),
     }
