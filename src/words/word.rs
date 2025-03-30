@@ -86,13 +86,11 @@ pub fn parse_word(token: &str) -> Option<ForthValue> {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use crate::{
-        tokens::{read_tokens, tokenize},
         stack::Stack,
+        tokens::{read_tokens, tokenize},
         words::dictionary::WordsDictionary,
     };
 
@@ -100,12 +98,12 @@ mod tests {
     fn test_case_insensitive() {
         let mut dict = WordsDictionary::new();
         let mut test_stack = Stack::new(100);
-        
+
         read_tokens(&tokenize(": foo dup ;"), &mut test_stack, &mut dict);
-        
+
         test_stack.push(1).unwrap();
         read_tokens(&tokenize("FOO Foo foo"), &mut test_stack, &mut dict);
-        
+
         assert_eq!(test_stack.data, &[1, 1, 1, 1]);
     }
 
@@ -113,12 +111,16 @@ mod tests {
     fn test_word_definition() {
         let mut dict = WordsDictionary::new();
         let mut test_stack = Stack::new(100);
-        
-        read_tokens(&tokenize(": dup-twice dup dup ;"), &mut test_stack, &mut dict);
-        
+
+        read_tokens(
+            &tokenize(": dup-twice dup dup ;"),
+            &mut test_stack,
+            &mut dict,
+        );
+
         test_stack.push(1).unwrap();
         read_tokens(&tokenize("dup-twice"), &mut test_stack, &mut dict);
-        
+
         assert_eq!(test_stack.data, &[1, 1, 1]);
     }
 
@@ -126,14 +128,14 @@ mod tests {
     fn test_redefinition() {
         let mut dict = WordsDictionary::new();
         let mut test_stack = Stack::new(100);
-        
+
         read_tokens(&tokenize(": foo dup ;"), &mut test_stack, &mut dict);
-        
+
         read_tokens(&tokenize(": foo dup dup ;"), &mut test_stack, &mut dict);
-        
+
         test_stack.push(1).unwrap();
         read_tokens(&tokenize("foo"), &mut test_stack, &mut dict);
-        
+
         assert_eq!(test_stack.data, &[1, 1, 1]);
     }
 
@@ -141,12 +143,16 @@ mod tests {
     fn test_shadowing_builtin() {
         let mut dict = WordsDictionary::new();
         let mut test_stack = Stack::new(100);
-        
-        read_tokens(&tokenize(": swap dup dup dup ;"), &mut test_stack, &mut dict);
-        
+
+        read_tokens(
+            &tokenize(": swap dup dup dup ;"),
+            &mut test_stack,
+            &mut dict,
+        );
+
         test_stack.push(1).unwrap();
         read_tokens(&tokenize("swap"), &mut test_stack, &mut dict);
-        
+
         assert_eq!(test_stack.data, &[1, 1, 1, 1]);
     }
 
@@ -154,15 +160,15 @@ mod tests {
     fn test_non_transitive() {
         let mut dict = WordsDictionary::new();
         let mut test_stack = Stack::new(100);
-        
+
         read_tokens(&tokenize(": foo 5 ;"), &mut test_stack, &mut dict);
-        
+
         read_tokens(&tokenize(": bar foo ;"), &mut test_stack, &mut dict);
-        
+
         read_tokens(&tokenize(": foo 6 ;"), &mut test_stack, &mut dict);
-        
+
         read_tokens(&tokenize("bar foo"), &mut test_stack, &mut dict);
-        
+
         assert_eq!(test_stack.data, &[5, 6]);
     }
 
@@ -170,13 +176,13 @@ mod tests {
     fn test_self_referential() {
         let mut dict = WordsDictionary::new();
         let mut test_stack = Stack::new(100);
-        
+
         read_tokens(&tokenize(": foo 10 ;"), &mut test_stack, &mut dict);
-        
+
         read_tokens(&tokenize(": foo foo 1 + ;"), &mut test_stack, &mut dict);
-        
+
         read_tokens(&tokenize("foo"), &mut test_stack, &mut dict);
-        
+
         assert_eq!(test_stack.data, &[11]);
     }
 
@@ -184,11 +190,11 @@ mod tests {
     fn test_shadowing_symbol() {
         let mut dict = WordsDictionary::new();
         let mut test_stack = Stack::new(100);
-        
+
         read_tokens(&tokenize(": + * ;"), &mut test_stack, &mut dict);
-        
+
         read_tokens(&tokenize("3 4 +"), &mut test_stack, &mut dict);
-        
+
         assert_eq!(test_stack.data, &[12]);
     }
 
@@ -196,11 +202,11 @@ mod tests {
     fn test_countup() {
         let mut dict = WordsDictionary::new();
         let mut test_stack = Stack::new(100);
-        
+
         read_tokens(&tokenize(": countup 1 2 3 ;"), &mut test_stack, &mut dict);
-        
+
         read_tokens(&tokenize("countup"), &mut test_stack, &mut dict);
-        
+
         assert_eq!(test_stack.data, &[1, 2, 3]);
     }
 
@@ -208,12 +214,12 @@ mod tests {
     fn test_shadowing_dup() {
         let mut dict = WordsDictionary::new();
         let mut test_stack = Stack::new(100);
-        
+
         read_tokens(&tokenize(": swap dup ;"), &mut test_stack, &mut dict);
-        
+
         test_stack.push(1).unwrap();
         read_tokens(&tokenize("swap"), &mut test_stack, &mut dict);
-        
+
         assert_eq!(test_stack.data, &[1, 1]);
     }
 }

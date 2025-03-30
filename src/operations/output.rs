@@ -1,5 +1,5 @@
 use super::forth_operation::ForthOperation;
-use crate::{forth_value::ForthValue, errors::print_error, stack::Stack};
+use crate::{errors::print_error, forth_value::ForthValue, stack::Stack};
 
 #[derive(Debug)]
 pub enum OutputOperation {
@@ -23,7 +23,6 @@ pub fn parse_output(token: &str) -> Option<ForthValue> {
         _ => None, //DotQuote (para imprimir por pantalla) lo manejamos aparte
     }
 }
-
 
 pub fn execute_output_op(op: &OutputOperation, stack: &mut Stack) {
     match op {
@@ -50,7 +49,7 @@ pub fn execute_output_op(op: &OutputOperation, stack: &mut Stack) {
 #[cfg(test)]
 //observacion: sobre estos no se testeo explícitamente que la salida sea la misma, dado que esto se ve reflejado al ejecutar el test
 mod tests {
-    use super::{execute_output_op, OutputOperation};
+    use super::{OutputOperation, execute_output_op};
     use crate::utils::init_stack;
     #[test]
     fn test_dot_without_leftover() {
@@ -121,31 +120,49 @@ mod tests {
     #[test]
     fn test_dot_quote_hello_world() {
         let mut test_stack = init_stack(&[]);
-        execute_output_op(&OutputOperation::DotQuote("hello world".to_string()), &mut test_stack);
+        execute_output_op(
+            &OutputOperation::DotQuote("hello world".to_string()),
+            &mut test_stack,
+        );
         assert_eq!(test_stack.data, &[]);
     }
 
     #[test]
     fn test_dot_quote_multiple_whitespace() {
         let mut test_stack = init_stack(&[]);
-        execute_output_op(&OutputOperation::DotQuote("hello      world!".to_string()), &mut test_stack);
+        execute_output_op(
+            &OutputOperation::DotQuote("hello      world!".to_string()),
+            &mut test_stack,
+        );
         assert_eq!(test_stack.data, &[]);
     }
 
     #[test]
     fn test_dot_quote_multiples() {
         let mut test_stack = init_stack(&[]);
-        execute_output_op(&OutputOperation::DotQuote("hello".to_string()), &mut test_stack);
-        execute_output_op(&OutputOperation::DotQuote("world".to_string()), &mut test_stack);
+        execute_output_op(
+            &OutputOperation::DotQuote("hello".to_string()),
+            &mut test_stack,
+        );
+        execute_output_op(
+            &OutputOperation::DotQuote("world".to_string()),
+            &mut test_stack,
+        );
         assert_eq!(test_stack.data, &[]);
     }
 
     #[test]
     fn test_dot_quote_and_cr() {
         let mut test_stack = init_stack(&[]);
-        execute_output_op(&OutputOperation::DotQuote("hello".to_string()), &mut test_stack);
+        execute_output_op(
+            &OutputOperation::DotQuote("hello".to_string()),
+            &mut test_stack,
+        );
         execute_output_op(&OutputOperation::Cr, &mut test_stack);
-        execute_output_op(&OutputOperation::DotQuote("world".to_string()), &mut test_stack);
+        execute_output_op(
+            &OutputOperation::DotQuote("world".to_string()),
+            &mut test_stack,
+        );
         assert_eq!(test_stack.data, &[]);
     }
 }

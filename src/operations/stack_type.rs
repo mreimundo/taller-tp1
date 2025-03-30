@@ -1,5 +1,5 @@
 use super::forth_operation::ForthOperation;
-use crate::{forth_value::ForthValue, errors::print_error, stack::Stack};
+use crate::{errors::print_error, forth_value::ForthValue, stack::Stack};
 
 #[derive(Debug)]
 pub enum StackOperation {
@@ -30,7 +30,6 @@ pub fn parse_stack_op(token: &str) -> Option<ForthValue> {
         _ => None,
     }
 }
-
 
 pub fn execute_stack_op(op: &StackOperation, stack: &mut Stack) {
     match op {
@@ -134,11 +133,9 @@ pub fn execute_stack_op(op: &StackOperation, stack: &mut Stack) {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
-    use super::{execute_stack_op, StackOperation};
+    use super::{StackOperation, execute_stack_op};
     use crate::utils::init_stack;
 
     #[test]

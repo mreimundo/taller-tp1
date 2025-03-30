@@ -1,5 +1,9 @@
 use super::forth_operation::ForthOperation;
-use crate::{forth_value::ForthValue, stack::Stack, errors::{ForthError, print_error}};
+use crate::{
+    errors::{ForthError, print_error},
+    forth_value::ForthValue,
+    stack::Stack,
+};
 
 #[derive(Debug)]
 pub enum BooleanOperation {
@@ -34,7 +38,6 @@ pub fn parse_boolean(token: &str) -> Option<ForthValue> {
         _ => None,
     }
 }
-
 
 pub fn execute_boolean_op(op: &BooleanOperation, stack: &mut Stack) {
     match op {
@@ -80,10 +83,9 @@ pub fn execute_boolean_op(op: &BooleanOperation, stack: &mut Stack) {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use super::{execute_boolean_op, BooleanOperation};
+    use super::{BooleanOperation, execute_boolean_op};
     use crate::utils::init_stack;
 
     #[test]

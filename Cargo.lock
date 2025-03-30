@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "TP1"
+name = "rust_the_forth"
 version = "0.1.0"

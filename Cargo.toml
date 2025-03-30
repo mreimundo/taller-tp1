@@ -1,6 +1,10 @@
 [package]
-name = "TP1"
+name = "rust_the_forth"
 version = "0.1.0"
 edition = "2024"
+
+[lib]
+name = "rust_the_forth"
+path = "src/lib.rs"
 
 [dependencies]

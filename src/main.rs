@@ -1,14 +1,14 @@
-mod errors;
-mod other_executions;
-mod forth_value;
-mod operations;
-mod stack;
-mod tokens;
-mod utils;
-mod words;
+pub mod errors;
+pub mod forth_value;
+pub mod operations;
+pub mod other_executions;
+pub mod stack;
+pub mod tokens;
+pub mod utils;
+pub mod words;
 
-use errors::{ForthError, print_error};
-use stack::Stack;
+pub use errors::{ForthError, print_error};
+pub use stack::Stack;
 use tokens::{read_tokens, tokenize};
 use utils::read_file;
 use words::dictionary::WordsDictionary;
@@ -16,7 +16,6 @@ use words::dictionary::WordsDictionary;
 const DEFAULT_STACK_SIZE: usize = 1024 * 128; //128KB
 
 /*-------------- TODO CHECKLIST --------------
-- Tests: a la misma altura que src pero en módulos apartes tipo crate. Implementarlos usando #[cfg(test)] en c/u. No se testea main.rs
 - completar cargo doc
 - Probar compilación y ejecución en una distro de linux. Validar todos los casos posibles
 - Reducir líneas de algunas funciones

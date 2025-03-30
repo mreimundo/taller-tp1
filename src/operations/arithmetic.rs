@@ -1,5 +1,9 @@
 use super::forth_operation::ForthOperation;
-use crate::{forth_value::ForthValue, stack:: Stack, errors::{ForthError, print_error}};
+use crate::{
+    errors::{ForthError, print_error},
+    forth_value::ForthValue,
+    stack::Stack,
+};
 
 #[derive(Debug)]
 pub enum ArithmeticOperation {
@@ -26,7 +30,6 @@ pub fn parse_arithmetic(token: &str) -> Option<ForthValue> {
         _ => None,
     }
 }
-
 
 pub fn execute_arithmetic_op(op: &ArithmeticOperation, stack: &mut Stack) {
     let a = match stack.pop() {
@@ -67,7 +70,7 @@ pub fn execute_arithmetic_op(op: &ArithmeticOperation, stack: &mut Stack) {
 mod tests {
     use crate::utils::init_stack;
 
-    use super::{execute_arithmetic_op, ArithmeticOperation};
+    use super::{ArithmeticOperation, execute_arithmetic_op};
 
     #[test]
     fn test_add_2() {

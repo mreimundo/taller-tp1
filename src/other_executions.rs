@@ -1,6 +1,10 @@
 use crate::operations::{
-    arithmetic::execute_arithmetic_op, boolean::execute_boolean_op, conditional::{ConditionalOperation, execute_conditional_op},
-    forth_operation::ForthOperation, output::execute_output_op, stack_type::execute_stack_op,
+    arithmetic::execute_arithmetic_op,
+    boolean::execute_boolean_op,
+    conditional::{ConditionalOperation, execute_conditional_op},
+    forth_operation::ForthOperation,
+    output::execute_output_op,
+    stack_type::execute_stack_op,
 };
 use crate::{
     errors::{ForthError, print_error},

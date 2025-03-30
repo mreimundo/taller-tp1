@@ -43,16 +43,23 @@ impl Display for ForthError {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::{
-        errors::{ForthError, print_error}, operations::{arithmetic::{execute_arithmetic_op, ArithmeticOperation}, stack_type::{execute_stack_op, StackOperation}}, stack::Stack, utils::init_stack,
-        words::dictionary::WordsDictionary, tokens::{tokenize, read_tokens}
+        errors::{ForthError, print_error},
+        operations::{
+            arithmetic::{ArithmeticOperation, execute_arithmetic_op},
+            stack_type::{StackOperation, execute_stack_op},
+        },
+        stack::Stack,
+        tokens::{read_tokens, tokenize},
+        utils::init_stack,
+        words::dictionary::WordsDictionary,
     };
 
     #[test]
-    fn test_arithmetic_underflows() { //pruebo las operaciones aritméticas, con todas teniendo solo el operador o un número y el operador, debería tirar "stack-underflow" (y stack vacío)
+    fn test_arithmetic_underflows() {
+        //pruebo las operaciones aritméticas, con todas teniendo solo el operador o un número y el operador, debería tirar "stack-underflow" (y stack vacío)
         let ops = [
             ArithmeticOperation::Add,
             ArithmeticOperation::Substract,
@@ -72,7 +79,8 @@ mod tests {
     }
 
     #[test]
-    fn test_stack_op_underflows() { //pruebo las operaciones de stack, con todas teniendo solo la operación deberia arrojar "stack-underflow" (y stack vacío)
+    fn test_stack_op_underflows() {
+        //pruebo las operaciones de stack, con todas teniendo solo la operación deberia arrojar "stack-underflow" (y stack vacío)
         let ops = [
             StackOperation::Duplicate,
             StackOperation::Drop,
@@ -108,7 +116,7 @@ mod tests {
     fn test_stack_overflow() {
         let stack_size_bytes = 10;
         let mut test_stack = Stack::new(stack_size_bytes);
-        
+
         for i in 1..=5 {
             test_stack.push(i).expect("Debería aceptar estos valores");
         }
@@ -126,7 +134,7 @@ mod tests {
     fn test_invalid_word_number() {
         let mut dict = WordsDictionary::new();
         let mut stack = Stack::new(100);
-        
+
         read_tokens(&tokenize(": 1 2 ;"), &mut stack, &mut dict);
         assert!(stack.data.is_empty());
     }
@@ -135,7 +143,7 @@ mod tests {
     fn test_unknown_word() {
         let mut dict = WordsDictionary::new();
         let mut stack = Stack::new(100);
-        
+
         read_tokens(&tokenize("foo"), &mut stack, &mut dict);
         assert!(stack.data.is_empty());
     }
