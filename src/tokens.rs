@@ -12,7 +12,7 @@ use crate::{
     forth_value::ForthValue,
 };
 use crate::{
-    executions::{ExecutionStage, execute_instruction},
+    other_executions::{ExecutionStage, execute_instruction},
     stack::Stack,
 };
 use std::iter::Peekable;

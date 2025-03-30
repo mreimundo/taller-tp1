@@ -1,5 +1,5 @@
 use super::forth_operation::ForthOperation;
-use crate::forth_value::ForthValue;
+use crate::{forth_value::ForthValue, stack:: Stack, errors::{ForthError, print_error}};
 
 #[derive(Debug)]
 pub enum ArithmeticOperation {
@@ -24,5 +24,104 @@ pub fn parse_arithmetic(token: &str) -> Option<ForthValue> {
             ArithmeticOperation::Divide,
         ))),
         _ => None,
+    }
+}
+
+
+pub fn execute_arithmetic_op(op: &ArithmeticOperation, stack: &mut Stack) {
+    let a = match stack.pop() {
+        Ok(val) => val,
+        Err(e) => {
+            print_error(e);
+            return;
+        }
+    };
+    let b = match stack.pop() {
+        Ok(val) => val,
+        Err(e) => {
+            print_error(e);
+            return;
+        }
+    };
+
+    let result = match op {
+        ArithmeticOperation::Add => a + b,
+        ArithmeticOperation::Substract => b - a,
+        ArithmeticOperation::Multiply => a * b,
+        ArithmeticOperation::Divide => {
+            if a != 0 {
+                b / a
+            } else {
+                print_error(ForthError::DivisionByZero);
+                return;
+            }
+        }
+    };
+
+    if let Err(e) = stack.push(result) {
+        print_error(e);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::utils::init_stack;
+
+    use super::{execute_arithmetic_op, ArithmeticOperation};
+
+    #[test]
+    fn test_add_2() {
+        let mut test_stack = init_stack(&[1, 2]);
+        execute_arithmetic_op(&ArithmeticOperation::Add, &mut test_stack);
+        assert_eq!(test_stack.data, &[3]);
+    }
+
+    #[test]
+    fn test_add_3() {
+        let mut test_stack = init_stack(&[1, 2, 3]);
+        execute_arithmetic_op(&ArithmeticOperation::Add, &mut test_stack);
+        assert_eq!(test_stack.data, &[1, 5]);
+    }
+
+    #[test]
+    fn test_sub_2() {
+        let mut test_stack = init_stack(&[3, 4]);
+        execute_arithmetic_op(&ArithmeticOperation::Substract, &mut test_stack);
+        assert_eq!(test_stack.data, &[-1]);
+    }
+
+    #[test]
+    fn test_sub_3() {
+        let mut test_stack = init_stack(&[1, 12, 3]);
+        execute_arithmetic_op(&ArithmeticOperation::Substract, &mut test_stack);
+        assert_eq!(test_stack.data, &[1, 9]);
+    }
+
+    #[test]
+    fn test_mul_2() {
+        let mut test_stack = init_stack(&[2, 4]);
+        execute_arithmetic_op(&ArithmeticOperation::Multiply, &mut test_stack);
+        assert_eq!(test_stack.data, &[8]);
+    }
+
+    #[test]
+    fn test_mul_3() {
+        let mut test_stack = init_stack(&[1, 2, 3]);
+        execute_arithmetic_op(&ArithmeticOperation::Multiply, &mut test_stack);
+        assert_eq!(test_stack.data, &[1, 6]);
+    }
+
+    #[test]
+    fn test_divide_2() {
+        let mut test_stack = init_stack(&[12, 3]);
+        execute_arithmetic_op(&ArithmeticOperation::Divide, &mut test_stack);
+        assert_eq!(test_stack.data, &[4]);
+    }
+
+    #[test]
+    fn test_divide_3() {
+        let mut test_stack = init_stack(&[1, 12, 3]);
+        execute_arithmetic_op(&ArithmeticOperation::Divide, &mut test_stack);
+        assert_eq!(test_stack.data, &[1, 4]);
     }
 }

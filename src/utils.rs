@@ -56,3 +56,17 @@ pub fn read_file(filename: &str) -> io::Result<Vec<String>> {
     let reader = io::BufReader::new(file);
     reader.lines().collect()
 }
+
+
+//a fines de test, una función para inicializar el stack
+#[cfg(test)]
+pub const TEST_STACK_SIZE: usize = 1024 * 128;
+
+#[cfg(test)]
+pub fn init_stack(values_to_push: &[i16]) -> crate::stack::Stack { //me aparece error si pongo el use en cualquier lugar arriba de esta línea
+    let mut stack = crate::stack::Stack::new(TEST_STACK_SIZE);
+    for &value in values_to_push {
+        stack.push(value).unwrap();
+    }
+    stack
+}

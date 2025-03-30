@@ -42,3 +42,101 @@ impl Display for ForthError {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        errors::{ForthError, print_error}, operations::{arithmetic::{execute_arithmetic_op, ArithmeticOperation}, stack_type::{execute_stack_op, StackOperation}}, stack::Stack, utils::init_stack,
+        words::dictionary::WordsDictionary, tokens::{tokenize, read_tokens}
+    };
+
+    #[test]
+    fn test_arithmetic_underflows() { //pruebo las operaciones aritméticas, con todas teniendo solo el operador o un número y el operador, debería tirar "stack-underflow" (y stack vacío)
+        let ops = [
+            ArithmeticOperation::Add,
+            ArithmeticOperation::Substract,
+            ArithmeticOperation::Multiply,
+            ArithmeticOperation::Divide,
+        ];
+
+        for op in ops {
+            let mut stack = Stack::new(10); //inicializacion sin valores a pushear
+            execute_arithmetic_op(&op, &mut stack);
+            assert!(stack.data.is_empty());
+
+            let mut stack = init_stack(&[1]);
+            execute_arithmetic_op(&op, &mut stack);
+            assert!(stack.data.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_stack_op_underflows() { //pruebo las operaciones de stack, con todas teniendo solo la operación deberia arrojar "stack-underflow" (y stack vacío)
+        let ops = [
+            StackOperation::Duplicate,
+            StackOperation::Drop,
+            StackOperation::Swap,
+            StackOperation::Over,
+            StackOperation::Rotate,
+        ];
+
+        for op in ops {
+            let mut test_stack = Stack::new(10); //inicializacion sin valores a pushear
+            execute_stack_op(&op, &mut test_stack);
+            assert!(test_stack.data.is_empty());
+        }
+
+        //hay algunas operaciones de stack que con un elemento también generan stack-underflow, como swap y over
+        let mut test_stack = init_stack(&[1]);
+        execute_stack_op(&StackOperation::Swap, &mut test_stack);
+        assert!(test_stack.data.is_empty());
+
+        let mut test_stack = init_stack(&[1]);
+        execute_stack_op(&StackOperation::Over, &mut test_stack);
+        assert!(test_stack.data.is_empty());
+    }
+
+    #[test]
+    fn test_division_by_zero() {
+        let mut test_stack = init_stack(&[4, 0]);
+        execute_arithmetic_op(&ArithmeticOperation::Divide, &mut test_stack);
+        assert!(test_stack.data.is_empty());
+    }
+
+    #[test]
+    fn test_stack_overflow() {
+        let stack_size_bytes = 10;
+        let mut test_stack = Stack::new(stack_size_bytes);
+        
+        for i in 1..=5 {
+            test_stack.push(i).expect("Debería aceptar estos valores");
+        }
+
+        match test_stack.push(6) {
+            Err(ForthError::StackOverflow) => print_error(ForthError::StackOverflow),
+            Ok(_) => panic!(),
+            Err(_e) => panic!(),
+        }
+
+        assert_eq!(test_stack.data, &[1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn test_invalid_word_number() {
+        let mut dict = WordsDictionary::new();
+        let mut stack = Stack::new(100);
+        
+        read_tokens(&tokenize(": 1 2 ;"), &mut stack, &mut dict);
+        assert!(stack.data.is_empty());
+    }
+
+    #[test]
+    fn test_unknown_word() {
+        let mut dict = WordsDictionary::new();
+        let mut stack = Stack::new(100);
+        
+        read_tokens(&tokenize("foo"), &mut stack, &mut dict);
+        assert!(stack.data.is_empty());
+    }
+}
