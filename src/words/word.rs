@@ -99,121 +99,121 @@ mod tests {
     #[test]
     fn test_case_insensitive() {
         let mut dict = WordsDictionary::new();
-        let mut stack = Stack::new(100);
+        let mut test_stack = Stack::new(100);
         
-        read_tokens(&tokenize(": foo dup ;"), &mut stack, &mut dict);
+        read_tokens(&tokenize(": foo dup ;"), &mut test_stack, &mut dict);
         
-        stack.push(1).unwrap();
-        read_tokens(&tokenize("FOO Foo foo"), &mut stack, &mut dict);
+        test_stack.push(1).unwrap();
+        read_tokens(&tokenize("FOO Foo foo"), &mut test_stack, &mut dict);
         
-        assert_eq!(stack.data, &[1, 1, 1, 1]);
+        assert_eq!(test_stack.data, &[1, 1, 1, 1]);
     }
 
     #[test]
     fn test_word_definition() {
         let mut dict = WordsDictionary::new();
-        let mut stack = Stack::new(100);
+        let mut test_stack = Stack::new(100);
         
-        read_tokens(&tokenize(": dup-twice dup dup ;"), &mut stack, &mut dict);
+        read_tokens(&tokenize(": dup-twice dup dup ;"), &mut test_stack, &mut dict);
         
-        stack.push(1).unwrap();
-        read_tokens(&tokenize("dup-twice"), &mut stack, &mut dict);
+        test_stack.push(1).unwrap();
+        read_tokens(&tokenize("dup-twice"), &mut test_stack, &mut dict);
         
-        assert_eq!(stack.data, &[1, 1, 1]);
+        assert_eq!(test_stack.data, &[1, 1, 1]);
     }
 
     #[test]
     fn test_redefinition() {
         let mut dict = WordsDictionary::new();
-        let mut stack = Stack::new(100);
+        let mut test_stack = Stack::new(100);
         
-        read_tokens(&tokenize(": foo dup ;"), &mut stack, &mut dict);
+        read_tokens(&tokenize(": foo dup ;"), &mut test_stack, &mut dict);
         
-        read_tokens(&tokenize(": foo dup dup ;"), &mut stack, &mut dict);
+        read_tokens(&tokenize(": foo dup dup ;"), &mut test_stack, &mut dict);
         
-        stack.push(1).unwrap();
-        read_tokens(&tokenize("foo"), &mut stack, &mut dict);
+        test_stack.push(1).unwrap();
+        read_tokens(&tokenize("foo"), &mut test_stack, &mut dict);
         
-        assert_eq!(stack.data, &[1, 1, 1]);
+        assert_eq!(test_stack.data, &[1, 1, 1]);
     }
 
     #[test]
     fn test_shadowing_builtin() {
         let mut dict = WordsDictionary::new();
-        let mut stack = Stack::new(100);
+        let mut test_stack = Stack::new(100);
         
-        read_tokens(&tokenize(": swap dup dup dup ;"), &mut stack, &mut dict);
+        read_tokens(&tokenize(": swap dup dup dup ;"), &mut test_stack, &mut dict);
         
-        stack.push(1).unwrap();
-        read_tokens(&tokenize("swap"), &mut stack, &mut dict);
+        test_stack.push(1).unwrap();
+        read_tokens(&tokenize("swap"), &mut test_stack, &mut dict);
         
-        assert_eq!(stack.data, &[1, 1, 1, 1]);
+        assert_eq!(test_stack.data, &[1, 1, 1, 1]);
     }
 
     #[test]
     fn test_non_transitive() {
         let mut dict = WordsDictionary::new();
-        let mut stack = Stack::new(100);
+        let mut test_stack = Stack::new(100);
         
-        read_tokens(&tokenize(": foo 5 ;"), &mut stack, &mut dict);
+        read_tokens(&tokenize(": foo 5 ;"), &mut test_stack, &mut dict);
         
-        read_tokens(&tokenize(": bar foo ;"), &mut stack, &mut dict);
+        read_tokens(&tokenize(": bar foo ;"), &mut test_stack, &mut dict);
         
-        read_tokens(&tokenize(": foo 6 ;"), &mut stack, &mut dict);
+        read_tokens(&tokenize(": foo 6 ;"), &mut test_stack, &mut dict);
         
-        read_tokens(&tokenize("bar foo"), &mut stack, &mut dict);
+        read_tokens(&tokenize("bar foo"), &mut test_stack, &mut dict);
         
-        assert_eq!(stack.data, &[5, 6]);
+        assert_eq!(test_stack.data, &[5, 6]);
     }
 
     #[test]
     fn test_self_referential() {
         let mut dict = WordsDictionary::new();
-        let mut stack = Stack::new(100);
+        let mut test_stack = Stack::new(100);
         
-        read_tokens(&tokenize(": foo 10 ;"), &mut stack, &mut dict);
+        read_tokens(&tokenize(": foo 10 ;"), &mut test_stack, &mut dict);
         
-        read_tokens(&tokenize(": foo foo 1 + ;"), &mut stack, &mut dict);
+        read_tokens(&tokenize(": foo foo 1 + ;"), &mut test_stack, &mut dict);
         
-        read_tokens(&tokenize("foo"), &mut stack, &mut dict);
+        read_tokens(&tokenize("foo"), &mut test_stack, &mut dict);
         
-        assert_eq!(stack.data, &[11]);
+        assert_eq!(test_stack.data, &[11]);
     }
 
     #[test]
     fn test_shadowing_symbol() {
         let mut dict = WordsDictionary::new();
-        let mut stack = Stack::new(100);
+        let mut test_stack = Stack::new(100);
         
-        read_tokens(&tokenize(": + * ;"), &mut stack, &mut dict);
+        read_tokens(&tokenize(": + * ;"), &mut test_stack, &mut dict);
         
-        read_tokens(&tokenize("3 4 +"), &mut stack, &mut dict);
+        read_tokens(&tokenize("3 4 +"), &mut test_stack, &mut dict);
         
-        assert_eq!(stack.data, &[12]);
+        assert_eq!(test_stack.data, &[12]);
     }
 
     #[test]
     fn test_countup() {
         let mut dict = WordsDictionary::new();
-        let mut stack = Stack::new(100);
+        let mut test_stack = Stack::new(100);
         
-        read_tokens(&tokenize(": countup 1 2 3 ;"), &mut stack, &mut dict);
+        read_tokens(&tokenize(": countup 1 2 3 ;"), &mut test_stack, &mut dict);
         
-        read_tokens(&tokenize("countup"), &mut stack, &mut dict);
+        read_tokens(&tokenize("countup"), &mut test_stack, &mut dict);
         
-        assert_eq!(stack.data, &[1, 2, 3]);
+        assert_eq!(test_stack.data, &[1, 2, 3]);
     }
 
     #[test]
     fn test_shadowing_dup() {
         let mut dict = WordsDictionary::new();
-        let mut stack = Stack::new(100);
+        let mut test_stack = Stack::new(100);
         
-        read_tokens(&tokenize(": swap dup ;"), &mut stack, &mut dict);
+        read_tokens(&tokenize(": swap dup ;"), &mut test_stack, &mut dict);
         
-        stack.push(1).unwrap();
-        read_tokens(&tokenize("swap"), &mut stack, &mut dict);
+        test_stack.push(1).unwrap();
+        read_tokens(&tokenize("swap"), &mut test_stack, &mut dict);
         
-        assert_eq!(stack.data, &[1, 1]);
+        assert_eq!(test_stack.data, &[1, 1]);
     }
 }

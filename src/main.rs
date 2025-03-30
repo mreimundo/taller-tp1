@@ -32,7 +32,7 @@ fn interpret_forth_file(filename: &str, stack: &mut Stack, dictionary: &mut Word
             }
 
             match stack.write_into_file() {
-                Ok(_) => println!("Stack restante ({:?}) escrito en stack.fth!", stack.data),
+                Ok(_) => println!("Stack ({:?}) written in stack.fth!", stack.data),
                 Err(_) => print_error(ForthError::Generic("Impossible to write stack".to_string())),
             }
         }
@@ -43,7 +43,7 @@ fn interpret_forth_file(filename: &str, stack: &mut Stack, dictionary: &mut Word
 }
 
 fn main() {
-    println!("----- Intérprete básico de Forth -----");
+    println!("----- Basic Forth-79 Interpreter -----");
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
         print_error(ForthError::WrongInput);
