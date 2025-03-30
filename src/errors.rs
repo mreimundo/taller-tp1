@@ -36,7 +36,7 @@ impl Display for ForthError {
             ForthError::UnknownWord => write!(f, "?"),
             ForthError::WrongInput => write!(
                 f,
-                "wrong-input. Try executing with format: cargo run -- path/to/main.fth [stack-size]"
+                "wrong-input. Try executing with format: cargo run -- path/to/main.fth stack-size=[size_of_stack]"
             ),
             ForthError::Generic(value) => write!(f, "[ERROR]: {value}"),
         }

@@ -44,15 +44,18 @@ fn interpret_forth_file(filename: &str, stack: &mut Stack, dictionary: &mut Word
 fn main() {
     println!("----- Basic Forth-79 Interpreter -----");
     let args: Vec<String> = std::env::args().collect();
-    if args.len() < 2 {
+    if args.len() > 3 || (args.len() == 3 && !args[2].starts_with("stack-size=")) {
         print_error(ForthError::WrongInput);
         return;
     }
 
     let size_bytes = args
-        .get(2)
+        .iter()
+        .find(|arg| arg.starts_with("stack-size="))
+        .and_then(|arg| arg.split('=').nth(1))
         .and_then(|s| s.trim().parse().ok())
         .unwrap_or(DEFAULT_STACK_SIZE);
+
     let mut stack = Stack::new(size_bytes);
     let mut words_dictionary = WordsDictionary::new();
 
