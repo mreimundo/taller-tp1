@@ -8,7 +8,7 @@ use crate::{errors::print_error, forth_value::ForthValue, stack::Stack};
 /// - Duplicate: duplicate a certain value.
 /// - Drop: removes a certain value.
 /// - Swap: change positions between the last two elements
-/// - Over: copy the first of the last two elements to the last position
+/// - Over: copy the first of the last two elements (penultimate) to the last position
 /// - Rotate: rotate values to the left
 
 #[derive(Debug)]
