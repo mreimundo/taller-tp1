@@ -1,6 +1,16 @@
 use super::forth_operation::ForthOperation;
 use crate::{errors::print_error, forth_value::ForthValue, stack::Stack};
 
+/// Enum that represents the output operations that can be interpreted by the program.
+///
+/// The different ones are:
+///
+/// - Dot: pops a value storaged in the stack.
+/// - Emit: express a number as an ascii char.
+/// - Cr: line break.
+/// - DotQuote: tuple that contains a String to print.
+///
+
 #[derive(Debug)]
 pub enum OutputOperation {
     Dot,
@@ -8,6 +18,8 @@ pub enum OutputOperation {
     Cr,
     DotQuote(String),
 }
+
+///Function which converts a token received by parameter as &str to a ForthValue if exists, or None if not.
 
 pub fn parse_output(token: &str) -> Option<ForthValue> {
     match token {
@@ -23,6 +35,8 @@ pub fn parse_output(token: &str) -> Option<ForthValue> {
         _ => None, //DotQuote (para imprimir por pantalla) lo manejamos aparte
     }
 }
+
+///Function that executes an output operation by receiving a reference to an output operation and the stack reference as mutable so it can be updated with the result.
 
 pub fn execute_output_op(op: &OutputOperation, stack: &mut Stack) {
     match op {

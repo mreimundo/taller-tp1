@@ -3,12 +3,23 @@ use crate::{
     errors::print_error, forth_value::ForthValue, other_executions::ExecutionStage, stack::Stack,
 };
 
+/// Enum that represents the conditional operations that can be interpreted by the program.
+///
+/// The different ones are:
+///
+/// - If: evaluates an expression.
+/// - Then: end of the condition, which can execute an instruction.
+/// - Else: execute an instruction by knowing the if condition evaluates to false.
+///
+
 #[derive(Debug)]
 pub enum ConditionalOperation {
     If,
     Then,
     Else,
 }
+
+///Function which converts a token received by parameter as &str to a ForthValue if exists, or None if not.
 
 pub fn parse_conditional(token: &str) -> Option<ForthValue> {
     match token {
@@ -25,52 +36,62 @@ pub fn parse_conditional(token: &str) -> Option<ForthValue> {
     }
 }
 
+///Function that executes a conditional operation by receiving a reference to a conditional operation and the stack reference as mutable so it can be updated with the result.
+
 pub fn execute_conditional_op(
     op: &ConditionalOperation,
     stack: &mut Stack,
     execution_mode: &mut Vec<ExecutionStage>,
 ) {
     match op {
-        ConditionalOperation::If => match stack.pop() {
-            Ok(condition) => {
-                if condition == 0 {
-                    execution_mode.push(ExecutionStage::Skipping(1));
-                } else {
-                    execution_mode.push(ExecutionStage::Executing);
-                }
-            }
-            Err(e) => print_error(e),
-        },
-        ConditionalOperation::Else => {
-            if let Some(last) = execution_mode.last_mut() {
-                match last {
-                    ExecutionStage::Executing => {
-                        *last = ExecutionStage::Skipping(1);
-                    }
-                    ExecutionStage::Skipping(depth) => {
-                        if *depth == 1 {
-                            if let Some(mode) = execution_mode.last_mut() {
-                                *mode = ExecutionStage::Executing;
-                            }
-                        }
-                    }
-                }
-            }
+        ConditionalOperation::If => handle_if(stack, execution_mode),
+        ConditionalOperation::Else => handle_else(execution_mode),
+        ConditionalOperation::Then => handle_then(execution_mode),
+    }
+}
+
+fn handle_if(stack: &mut Stack, execution_mode: &mut Vec<ExecutionStage>) {
+    match stack.pop() {
+        Ok(condition) => {
+            let stage = if condition == 0 {
+                ExecutionStage::Skipping(1)
+            } else {
+                ExecutionStage::Executing
+            };
+            execution_mode.push(stage);
         }
-        ConditionalOperation::Then => {
-            if let Some(last) = execution_mode.last_mut() {
-                match last {
-                    ExecutionStage::Skipping(depth) => {
-                        if *depth > 1 {
-                            *depth -= 1;
-                        } else {
-                            execution_mode.pop();
-                        }
-                    }
-                    _ => {
-                        execution_mode.pop();
-                    }
+        Err(e) => print_error(e),
+    }
+}
+
+fn handle_else(execution_mode: &mut [ExecutionStage]) {
+    if let Some(last) = execution_mode.last_mut() {
+        match last {
+            ExecutionStage::Executing => {
+                *last = ExecutionStage::Skipping(1);
+            }
+            ExecutionStage::Skipping(depth) if *depth == 1 => {
+                if let Some(mode) = execution_mode.last_mut() {
+                    *mode = ExecutionStage::Executing;
                 }
+            }
+            _ => {}
+        }
+    }
+}
+
+fn handle_then(execution_mode: &mut Vec<ExecutionStage>) {
+    if let Some(last) = execution_mode.last_mut() {
+        match last {
+            ExecutionStage::Skipping(depth) => {
+                if *depth > 1 {
+                    *depth -= 1;
+                } else {
+                    execution_mode.pop();
+                }
+            }
+            _ => {
+                execution_mode.pop();
             }
         }
     }

@@ -18,6 +18,11 @@ use crate::{
 use std::iter::Peekable;
 use std::str::Chars;
 
+/// Function to handle the process of DotQuote expression. This process is constructed by:
+/// 1. Consuming the initial `.` and optional leading spaces
+/// 2. Collecting all characters received by parameter until a closing `"` is found
+/// 3. Adding the formatted token (e.g., `."message"`) to the tokens vector received by parameter.
+
 pub fn tokenize_dot_quote(chars: &mut Peekable<Chars>, tokens: &mut Vec<String>) {
     chars.next();
     let mut dot_quote = String::new();
@@ -36,11 +41,19 @@ pub fn tokenize_dot_quote(chars: &mut Peekable<Chars>, tokens: &mut Vec<String>)
     tokens.push(format!(".\"{}", dot_quote));
 }
 
+/// Function that pushes the current token to the tokens if it is not empty.
+
 pub fn handle_token_char(cur_tok: String, tokens: &mut Vec<String>) {
     if !cur_tok.is_empty() {
         tokens.push(cur_tok);
     }
 }
+
+/// Function that 'tokenize' the input received as &str, returning a vector of String.
+/// This function iterates the characters, processing each one to return its interpretation in the following way:
+/// 1. Splitting on whitespace (spaces and tabs)
+/// 2. Handling special dot-quote strings (`."...`) as single tokens
+/// 3. Preserving all other character sequences as distinct tokens
 
 pub fn tokenize(input: &str) -> Vec<String> {
     let mut tokens = Vec::new();
@@ -69,9 +82,15 @@ pub fn tokenize(input: &str) -> Vec<String> {
     tokens
 }
 
-/*recibe un token y devuelve la operación asociada al mismo.
-si no encuentra una de las instrucciones básicas de forth, se trata de una word o de un número
-*/
+/// Function that parse a token.
+/// Receives a token as &str and &WordsDictionary, returning its associated ForthValue.
+/// This function attempts to interpret a token in the following priority order:
+/// 1. Dot-quote strings (e.g., `."message"`)
+/// 2. User-defined words (checks dictionary)
+/// 3. Numeric literals
+/// 4. Built-in operations (arithmetic, stack, output, boolean, conditional)
+/// 5. Word definitions (start/end markers)
+
 pub fn parse_token(token: &str, dictionary: &WordsDictionary) -> ForthValue {
     if let Some(quoted_text) = token.strip_prefix(".\"") {
         return ForthValue::Operation(ForthOperation::Output(OutputOperation::DotQuote(
@@ -110,6 +129,10 @@ pub fn parse_token(token: &str, dictionary: &WordsDictionary) -> ForthValue {
     }
 }
 
+/// Function used to handle values that are not a word.
+/// Receives the ForthValue, a flag that indicates if a word is or is not defined, a mutable ForthValue vector "definition" to add a value if its defining a word,
+/// and a mutable Stack, WordsDictionary, the executed words (vector of String), and the execution stage vector to pass directly to execute_instruction function.
+
 pub fn handle_other_token(
     value: ForthValue,
     flag_defining_word: bool,
@@ -117,7 +140,7 @@ pub fn handle_other_token(
     stack: &mut Stack,
     dictionary: &mut WordsDictionary,
     executed_words: &mut Vec<String>,
-    execution_mode_stack: &mut Vec<ExecutionStage>,
+    execution_stage_stack: &mut Vec<ExecutionStage>,
 ) {
     if flag_defining_word {
         definition.push(value);
@@ -126,25 +149,28 @@ pub fn handle_other_token(
             &value,
             stack,
             dictionary,
-            execution_mode_stack,
+            execution_stage_stack,
             None,
             executed_words,
         );
     }
 }
 
-/*función para leer los tokens.
-realizando pattern matching se verifica si es una word, cuyo comportamiento se define aparte de las operaciones convencionales.
-si no es de ese tipo o bien puede ejecutarse o está en medio de la definición de la word, por lo que se agrega el flag_defining_word
-*/
+/// Function used to process a sequence of tokens received by parameter as a reference list to String values.
+/// It also receives a mutable Stack and WordsDictionary to change the values if necessary by passing to other functions.
+/// This function is the core interpreter that:
+/// 1. Manages word definition mode (between `:` and `;`)
+/// 2. Handles execution flow control (if/else/then)
+/// 3. Processes all other operations and literals
+/// NOTE: This function seems too long, but it exceeds 30 lines of body by the way cargo fmt puts line breaks into invoked functions parameters. If we change the parameters to be inline, this would not happen.
+
 pub fn read_tokens(tokens: &[String], stack: &mut Stack, dictionary: &mut WordsDictionary) {
     let mut i = 0;
     let mut flag_defining_word = false;
     let mut current_word_name = "";
     let mut current_definition = Vec::new();
     let mut executed_words = Vec::new();
-    let mut execution_mode_stack = vec![ExecutionStage::Executing];
-
+    let mut execution_stage_stack = vec![ExecutionStage::Executing];
     while i < tokens.len() {
         let value = parse_token(&tokens[i], dictionary);
         match &value {
@@ -181,14 +207,12 @@ pub fn read_tokens(tokens: &[String], stack: &mut Stack, dictionary: &mut WordsD
                     stack,
                     dictionary,
                     &mut executed_words,
-                    &mut execution_mode_stack,
+                    &mut execution_stage_stack,
                 );
             }
         }
-
         i += 1;
     }
-
     if flag_defining_word {
         print_error(ForthError::InvalidWord);
     }

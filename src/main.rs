@@ -15,12 +15,6 @@ use words::dictionary::WordsDictionary;
 
 const DEFAULT_STACK_SIZE: usize = 1024 * 128; //128KB
 
-/*-------------- TODO CHECKLIST --------------
-- completar cargo doc
-- Probar compilación y ejecución en una distro de linux. Validar todos los casos posibles
-- Reducir líneas de algunas funciones
-- Corregir nested ifs
-*/
 
 fn interpret_forth_file(filename: &str, stack: &mut Stack, dictionary: &mut WordsDictionary) {
     match read_file(filename) {

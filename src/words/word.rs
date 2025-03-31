@@ -2,6 +2,8 @@ use super::dictionary::WordsDictionary;
 use crate::{
     errors::{ForthError, print_error},
     forth_value::ForthValue,
+    other_executions::{ExecutionStage, execute_instruction},
+    stack::Stack,
     utils::get_copy_forth_value,
 };
 
@@ -84,6 +86,41 @@ pub fn parse_word(token: &str) -> Option<ForthValue> {
         ";" => Some(ForthValue::Word(ForthWord::End)),
         _ => None,
     }
+}
+
+/// Execute the word if valid. It is also pushed to a vector of String.
+/// The function can execute other words contained in another one, allowing recursion and also redefinition.
+
+pub fn handle_word_execution(
+    word_name: &String,
+    stack: &mut Stack,
+    dictionary: &WordsDictionary,
+    executed_words: &mut Vec<String>,
+) {
+    if executed_words.contains(word_name) {
+        return;
+    }
+
+    executed_words.push(word_name.to_string());
+
+    match dictionary.get_word(word_name) {
+        Some(definition) => {
+            let mut mode_stack = vec![ExecutionStage::Executing];
+            for val in definition {
+                execute_instruction(
+                    val,
+                    stack,
+                    dictionary,
+                    &mut mode_stack,
+                    Some(word_name.to_string()),
+                    executed_words,
+                );
+            }
+        }
+        None => print_error(ForthError::UnknownWord),
+    }
+
+    executed_words.pop();
 }
 
 #[cfg(test)]

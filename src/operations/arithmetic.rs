@@ -5,6 +5,16 @@ use crate::{
     stack::Stack,
 };
 
+/// Enum that represents the arithmetic operations that can be interpreted by the program.
+///
+/// The different ones are:
+///
+/// - Add: sum between two numeric elements.
+/// - Substract: substract between two numeric elements.
+/// - Multiply: multiplication between two numeric elements.
+/// - Divide: division between two numeric elements.
+///
+
 #[derive(Debug)]
 pub enum ArithmeticOperation {
     Add,
@@ -12,6 +22,8 @@ pub enum ArithmeticOperation {
     Multiply,
     Divide,
 }
+
+///Function which converts a token received by parameter as &str to a ForthValue if exists, or None if not.
 
 pub fn parse_arithmetic(token: &str) -> Option<ForthValue> {
     match token {
@@ -31,6 +43,8 @@ pub fn parse_arithmetic(token: &str) -> Option<ForthValue> {
     }
 }
 
+///Function that executes an arithmetic operation by receiving a reference to an arithmetic operation and the stack reference as mutable so it can be updated with the result.
+
 pub fn execute_arithmetic_op(op: &ArithmeticOperation, stack: &mut Stack) {
     let a = match stack.pop() {
         Ok(val) => val,
@@ -46,7 +60,6 @@ pub fn execute_arithmetic_op(op: &ArithmeticOperation, stack: &mut Stack) {
             return;
         }
     };
-
     let result = match op {
         ArithmeticOperation::Add => a + b,
         ArithmeticOperation::Substract => b - a,
@@ -60,7 +73,6 @@ pub fn execute_arithmetic_op(op: &ArithmeticOperation, stack: &mut Stack) {
             }
         }
     };
-
     if let Err(e) = stack.push(result) {
         print_error(e);
     }

@@ -1,14 +1,14 @@
 use std::fmt::Display;
 
-/* Enum que representa los errores que puede tener la ejecución del intérprete de Forth, ante un valor determinado
+/* Enum that represents the errors that the execution of the Forth interpreter may have, given a given value
 Los distintos son:
-- StackUnderflow: cuando una operación intenta popear un elemento de una pila vacía.
-- StackOverflow: cuando una operación intenta pushear un elemento a una pila que se encuentra en su capacidad máxima de memoria.
-- InvalidWord: cuando se trata de definir una word invalida, por ejemplo: : 1 1 ;.
-- DivisionByZero: cuando se trata de dividir por cero.
-- UnknownWord: cuando el interprete no puede hallar la definición de la word evaluada.
-- WrongInput: cuando el formato con el cual se ejecuta el programa es erróneo.
-- Generic: generic type for other possible errors detected.
+- StackUnderflow: when an operation attempts to pop an element from an empty stack.
+- StackOverflow: when an operation attempts to push an element onto a stack that is at its maximum memory capacity.
+- InvalidWord: when trying to define an invalid word, for example: : 1 1 ;.
+- DivisionByZero: when trying to divide by zero.
+- UnknownWord: when the interpreter cannot find the definition of the word being evaluated.
+- WrongInput: when the format in which the program is executed is incorrect.
+- Generic: generic tuple that contains a String used for other possible errors detected.
 */
 
 #[derive(Debug, PartialEq)]
@@ -21,6 +21,8 @@ pub enum ForthError {
     WrongInput,
     Generic(String),
 }
+
+///Function used to print an error received by parameter as ForthError
 
 pub fn print_error(error: ForthError) {
     println!("{}", error);

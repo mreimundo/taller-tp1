@@ -9,38 +9,17 @@ use std::io::{self, BufRead};
 pub fn get_copy_forth_value(value: &ForthValue) -> ForthValue {
     match value {
         ForthValue::Operation(op) => ForthValue::Operation(match op {
-            ForthOperation::Arithmetic(a) => ForthOperation::Arithmetic(match a {
-                ArithmeticOperation::Add => ArithmeticOperation::Add,
-                ArithmeticOperation::Substract => ArithmeticOperation::Substract,
-                ArithmeticOperation::Multiply => ArithmeticOperation::Multiply,
-                ArithmeticOperation::Divide => ArithmeticOperation::Divide,
-            }),
-            ForthOperation::StackTypeOp(s) => ForthOperation::StackTypeOp(match s {
-                StackOperation::Duplicate => StackOperation::Duplicate,
-                StackOperation::Drop => StackOperation::Drop,
-                StackOperation::Swap => StackOperation::Swap,
-                StackOperation::Over => StackOperation::Over,
-                StackOperation::Rotate => StackOperation::Rotate,
-            }),
-            ForthOperation::Output(o) => ForthOperation::Output(match o {
-                OutputOperation::Dot => OutputOperation::Dot,
-                OutputOperation::Emit => OutputOperation::Emit,
-                OutputOperation::Cr => OutputOperation::Cr,
-                OutputOperation::DotQuote(text) => OutputOperation::DotQuote(text.to_string()),
-            }),
-            ForthOperation::Boolean(b) => ForthOperation::Boolean(match b {
-                BooleanOperation::Equal => BooleanOperation::Equal,
-                BooleanOperation::Less => BooleanOperation::Less,
-                BooleanOperation::Greater => BooleanOperation::Greater,
-                BooleanOperation::And => BooleanOperation::And,
-                BooleanOperation::Or => BooleanOperation::Or,
-                BooleanOperation::Not => BooleanOperation::Not,
-            }),
-            ForthOperation::Conditional(c) => ForthOperation::Conditional(match c {
-                ConditionalOperation::If => ConditionalOperation::If,
-                ConditionalOperation::Then => ConditionalOperation::Then,
-                ConditionalOperation::Else => ConditionalOperation::Else,
-            }),
+            ForthOperation::Arithmetic(a) => {
+                ForthOperation::Arithmetic(get_arithmetic_operation_value(a))
+            }
+            ForthOperation::StackTypeOp(s) => {
+                ForthOperation::StackTypeOp(get_stack_operation_value(s))
+            }
+            ForthOperation::Output(o) => ForthOperation::Output(get_output_operation_value(o)),
+            ForthOperation::Boolean(b) => ForthOperation::Boolean(get_boolean_operation_value(b)),
+            ForthOperation::Conditional(c) => {
+                ForthOperation::Conditional(get_conditional_operation_value(c))
+            }
         }),
         ForthValue::Word(w) => ForthValue::Word(match w {
             ForthWord::Start(s) => ForthWord::Start(s.to_string()),
@@ -48,6 +27,53 @@ pub fn get_copy_forth_value(value: &ForthValue) -> ForthValue {
             ForthWord::End => ForthWord::End,
         }),
         ForthValue::Number(n) => ForthValue::Number(*n),
+    }
+}
+
+fn get_arithmetic_operation_value(arithmetic_op: &ArithmeticOperation) -> ArithmeticOperation {
+    match arithmetic_op {
+        ArithmeticOperation::Add => ArithmeticOperation::Add,
+        ArithmeticOperation::Substract => ArithmeticOperation::Substract,
+        ArithmeticOperation::Multiply => ArithmeticOperation::Multiply,
+        ArithmeticOperation::Divide => ArithmeticOperation::Divide,
+    }
+}
+
+fn get_stack_operation_value(stack_op: &StackOperation) -> StackOperation {
+    match stack_op {
+        StackOperation::Duplicate => StackOperation::Duplicate,
+        StackOperation::Drop => StackOperation::Drop,
+        StackOperation::Swap => StackOperation::Swap,
+        StackOperation::Over => StackOperation::Over,
+        StackOperation::Rotate => StackOperation::Rotate,
+    }
+}
+
+fn get_output_operation_value(output_op: &OutputOperation) -> OutputOperation {
+    match output_op {
+        OutputOperation::Dot => OutputOperation::Dot,
+        OutputOperation::Emit => OutputOperation::Emit,
+        OutputOperation::Cr => OutputOperation::Cr,
+        OutputOperation::DotQuote(text) => OutputOperation::DotQuote(text.to_string()),
+    }
+}
+
+fn get_boolean_operation_value(boolean_op: &BooleanOperation) -> BooleanOperation {
+    match boolean_op {
+        BooleanOperation::Equal => BooleanOperation::Equal,
+        BooleanOperation::Less => BooleanOperation::Less,
+        BooleanOperation::Greater => BooleanOperation::Greater,
+        BooleanOperation::And => BooleanOperation::And,
+        BooleanOperation::Or => BooleanOperation::Or,
+        BooleanOperation::Not => BooleanOperation::Not,
+    }
+}
+
+fn get_conditional_operation_value(conditional_op: &ConditionalOperation) -> ConditionalOperation {
+    match conditional_op {
+        ConditionalOperation::If => ConditionalOperation::If,
+        ConditionalOperation::Then => ConditionalOperation::Then,
+        ConditionalOperation::Else => ConditionalOperation::Else,
     }
 }
 
@@ -63,7 +89,6 @@ const TEST_STACK_SIZE: usize = 1024 * 128;
 
 #[cfg(test)]
 pub fn init_stack(values_to_push: &[i16]) -> crate::stack::Stack {
-    //me aparece error si pongo el use en cualquier lugar arriba de esta línea
     let mut stack = crate::stack::Stack::new(TEST_STACK_SIZE);
     for &value in values_to_push {
         stack.push(value).unwrap();
