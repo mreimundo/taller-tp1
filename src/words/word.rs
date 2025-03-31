@@ -22,7 +22,6 @@ pub enum ForthWord {
     End,
 }
 
-
 /// Function that handles the start of a word definition ':'.
 /// This function manages the transition into word definition mode by:
 /// 1. Validating the definition context
@@ -58,7 +57,6 @@ pub fn handle_word_definition<'a>(
     definition.clear();
     *i += 1;
 }
-
 
 /// Function that finalizes a word definition when encountering the `;` token.
 /// In order to do that it follows the next sequence:
@@ -101,7 +99,6 @@ pub fn handle_word_end(
         print_error(ForthError::InvalidWord);
     }
 }
-
 
 /// Function that receives a token as &str and returns its corresponding ForthValue if exists.
 /// If token is ':' returns the word mode as definition. If it is ';' returns the word mode as end.

@@ -15,7 +15,6 @@ use words::dictionary::WordsDictionary;
 
 const DEFAULT_STACK_SIZE: usize = 1024 * 128; //128KB
 
-
 fn interpret_forth_file(filename: &str, stack: &mut Stack, dictionary: &mut WordsDictionary) {
     match read_file(filename) {
         Ok(lines) => {

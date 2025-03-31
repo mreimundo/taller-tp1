@@ -27,13 +27,11 @@ impl WordsDictionary {
         self.words.get(name)
     }
 
-
     /// Function used to get a mutable word instance of the dictionary. It receives a mutable instance of this and the name (key) of the word as &str.
     /// Gets the key as a mutable reference to the current value (vector of ForthValue).
     pub fn get_word_mut(&mut self, name: &str) -> Option<&mut Vec<ForthValue>> {
         self.words.get_mut(name)
     }
-
 
     /// Function used to know if a word is or is not defined. It receives a reference to the dictionary and the name (key) of the word as &str.
     /// Returns true if it is in the dictionary instance, or false if it is not.
