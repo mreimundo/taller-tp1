@@ -22,7 +22,6 @@ use std::str::Chars;
 /// 1. Consuming the initial `.` and optional leading spaces
 /// 2. Collecting all characters received by parameter until a closing `"` is found
 /// 3. Adding the formatted token (e.g., `."message"`) to the tokens vector received by parameter.
-
 pub fn tokenize_dot_quote(chars: &mut Peekable<Chars>, tokens: &mut Vec<String>) {
     chars.next();
     let mut dot_quote = String::new();
@@ -42,7 +41,6 @@ pub fn tokenize_dot_quote(chars: &mut Peekable<Chars>, tokens: &mut Vec<String>)
 }
 
 /// Function that pushes the current token to the tokens if it is not empty.
-
 pub fn handle_token_char(cur_tok: String, tokens: &mut Vec<String>) {
     if !cur_tok.is_empty() {
         tokens.push(cur_tok);
@@ -54,7 +52,6 @@ pub fn handle_token_char(cur_tok: String, tokens: &mut Vec<String>) {
 /// 1. Splitting on whitespace (spaces and tabs)
 /// 2. Handling special dot-quote strings (`."...`) as single tokens
 /// 3. Preserving all other character sequences as distinct tokens
-
 pub fn tokenize(input: &str) -> Vec<String> {
     let mut tokens = Vec::new();
     let mut chars = input.chars().peekable();
@@ -90,7 +87,6 @@ pub fn tokenize(input: &str) -> Vec<String> {
 /// 3. Numeric literals
 /// 4. Built-in operations (arithmetic, stack, output, boolean, conditional)
 /// 5. Word definitions (start/end markers)
-
 pub fn parse_token(token: &str, dictionary: &WordsDictionary) -> ForthValue {
     if let Some(quoted_text) = token.strip_prefix(".\"") {
         return ForthValue::Operation(ForthOperation::Output(OutputOperation::DotQuote(
@@ -132,7 +128,6 @@ pub fn parse_token(token: &str, dictionary: &WordsDictionary) -> ForthValue {
 /// Function used to handle values that are not a word.
 /// Receives the ForthValue, a flag that indicates if a word is or is not defined, a mutable ForthValue vector "definition" to add a value if its defining a word,
 /// and a mutable Stack, WordsDictionary, the executed words (vector of String), and the execution stage vector to pass directly to execute_instruction function.
-
 pub fn handle_other_token(
     value: ForthValue,
     flag_defining_word: bool,
@@ -162,8 +157,7 @@ pub fn handle_other_token(
 /// 1. Manages word definition mode (between `:` and `;`)
 /// 2. Handles execution flow control (if/else/then)
 /// 3. Processes all other operations and literals
-/// NOTE: This function seems too long, but it exceeds 30 lines of body by the way cargo fmt puts line breaks into invoked functions parameters. If we change the parameters to be inline, this would not happen.
-
+///     NOTE: This function seems too long, but it exceeds 30 lines of body by the way cargo fmt puts line breaks into invoked functions parameters. If we change the parameters to be inline, this would not happen.
 pub fn read_tokens(tokens: &[String], stack: &mut Stack, dictionary: &mut WordsDictionary) {
     let mut i = 0;
     let mut flag_defining_word = false;

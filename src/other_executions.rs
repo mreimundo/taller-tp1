@@ -32,7 +32,6 @@ pub enum ExecutionStage {
 
 /// Execute different operations depending on the ForthValue reference "val" received by parameter. It receives the stack aswell to pass to the different execute_operations to update it.
 /// The function also receives a reference to WordsDictionary to storage words, the current word that is executing, and a vector of the executed words to pass to execute_instruction.
-
 pub fn execute_other_operations(
     val: &ForthValue,
     stack: &mut Stack,
@@ -78,7 +77,6 @@ pub fn execute_other_operations(
 
 /// Execute different instructions depending on the ForthValue reference "val" received by parameter. It receives the stack aswell to pass to handle_executing_mode.
 /// The function also receives a reference to WordsDictionary to storage words, the current word that is executing, and a vector of the executed words to pass to handle_executing_mode.
-
 pub fn execute_instruction(
     val: &ForthValue,
     stack: &mut Stack,

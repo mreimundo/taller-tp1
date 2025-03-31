@@ -28,7 +28,6 @@ pub enum BooleanOperation {
 }
 
 ///Function which converts a token received by parameter as &str to a ForthValue if exists, or None if not.
-
 pub fn parse_boolean(token: &str) -> Option<ForthValue> {
     match token {
         "=" => Some(ForthValue::Operation(ForthOperation::Boolean(

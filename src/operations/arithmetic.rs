@@ -24,7 +24,6 @@ pub enum ArithmeticOperation {
 }
 
 ///Function which converts a token received by parameter as &str to a ForthValue if exists, or None if not.
-
 pub fn parse_arithmetic(token: &str) -> Option<ForthValue> {
     match token {
         "+" => Some(ForthValue::Operation(ForthOperation::Arithmetic(
@@ -44,7 +43,6 @@ pub fn parse_arithmetic(token: &str) -> Option<ForthValue> {
 }
 
 ///Function that executes an arithmetic operation by receiving a reference to an arithmetic operation and the stack reference as mutable so it can be updated with the result.
-
 pub fn execute_arithmetic_op(op: &ArithmeticOperation, stack: &mut Stack) {
     let a = match stack.pop() {
         Ok(val) => val,

@@ -6,6 +6,10 @@ use crate::{forth_value::ForthValue, words::word::ForthWord};
 use std::fs::File;
 use std::io::{self, BufRead};
 
+
+/// Function used mainly in words.rs to get a ForthValue by receiving its reference.
+/// This was created since is forbidden to use clone() and copy(). Besides the ForthValue does not implement traits Clone / Copy.
+/// The function handles each case separately so each value can be converted as appropiate.
 pub fn get_copy_forth_value(value: &ForthValue) -> ForthValue {
     match value {
         ForthValue::Operation(op) => ForthValue::Operation(match op {

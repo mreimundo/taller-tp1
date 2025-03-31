@@ -21,7 +21,6 @@ pub enum StackOperation {
 }
 
 ///Function which converts a token received by parameter as &str to a ForthValue if exists, or None if not.
-
 pub fn parse_stack_op(token: &str) -> Option<ForthValue> {
     match token {
         "DUP" => Some(ForthValue::Operation(ForthOperation::StackTypeOp(
@@ -44,7 +43,6 @@ pub fn parse_stack_op(token: &str) -> Option<ForthValue> {
 }
 
 ///Function that executes a stack_type operation by receiving a reference to a stack_type operation and the stack reference as mutable so it can be updated with the result.
-
 pub fn execute_stack_op(op: &StackOperation, stack: &mut Stack) {
     match op {
         StackOperation::Duplicate => handle_duplicate(stack),

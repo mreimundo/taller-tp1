@@ -20,7 +20,6 @@ pub enum ConditionalOperation {
 }
 
 ///Function which converts a token received by parameter as &str to a ForthValue if exists, or None if not.
-
 pub fn parse_conditional(token: &str) -> Option<ForthValue> {
     match token {
         "IF" => Some(ForthValue::Operation(ForthOperation::Conditional(
@@ -37,7 +36,6 @@ pub fn parse_conditional(token: &str) -> Option<ForthValue> {
 }
 
 ///Function that executes a conditional operation by receiving a reference to a conditional operation and the stack reference as mutable so it can be updated with the result.
-
 pub fn execute_conditional_op(
     op: &ConditionalOperation,
     stack: &mut Stack,

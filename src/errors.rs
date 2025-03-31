@@ -23,7 +23,6 @@ pub enum ForthError {
 }
 
 ///Function used to print an error received by parameter as ForthError
-
 pub fn print_error(error: ForthError) {
     println!("{}", error);
 }

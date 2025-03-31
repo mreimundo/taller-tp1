@@ -7,6 +7,14 @@ use crate::{
     utils::get_copy_forth_value,
 };
 
+/// Enum that represents the word modes that can be interpreted by the program.
+///
+/// The different ones are:
+///
+/// - Start: tuple that contains a String value that indicates its word-name. This is next to ':'
+/// - Definition: the current word is being defined.
+/// - End: End of the word, which in Forth is defined with ';'
+///
 #[derive(Debug)]
 pub enum ForthWord {
     Start(String),
@@ -14,6 +22,13 @@ pub enum ForthWord {
     End,
 }
 
+
+/// Function that handles the start of a word definition ':'.
+/// This function manages the transition into word definition mode by:
+/// 1. Validating the definition context
+/// 2. Capturing the new word's name
+/// 3. Preparing the definition vector
+///     To do so, receives a reference (by scope) list of String and mutable index (i), flag of definition, the current word name and the values associated in 'definition' (vector of ForthValue)
 pub fn handle_word_definition<'a>(
     tokens: &'a [String],
     i: &mut usize,
@@ -44,6 +59,13 @@ pub fn handle_word_definition<'a>(
     *i += 1;
 }
 
+
+/// Function that finalizes a word definition when encountering the `;` token.
+/// In order to do that it follows the next sequence:
+/// 1. Validate the definition context
+/// 2. Process the collected definition tokens
+/// 3. Store the final definition in the dictionary
+///     To do so, receives the current word name as &str, a reference mutable flag of definition, the values associated in 'definition' (vector of ForthValue), and a WordsDictionary to make updates and get the words.
 pub fn handle_word_end(
     flag: &mut bool,
     name: &str,
@@ -80,6 +102,9 @@ pub fn handle_word_end(
     }
 }
 
+
+/// Function that receives a token as &str and returns its corresponding ForthValue if exists.
+/// If token is ':' returns the word mode as definition. If it is ';' returns the word mode as end.
 pub fn parse_word(token: &str) -> Option<ForthValue> {
     match token {
         ":" => Some(ForthValue::Word(ForthWord::Definition)),
@@ -90,7 +115,6 @@ pub fn parse_word(token: &str) -> Option<ForthValue> {
 
 /// Execute the word if valid. It is also pushed to a vector of String.
 /// The function can execute other words contained in another one, allowing recursion and also redefinition.
-
 pub fn handle_word_execution(
     word_name: &String,
     stack: &mut Stack,

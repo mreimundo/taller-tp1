@@ -20,7 +20,6 @@ pub enum OutputOperation {
 }
 
 ///Function which converts a token received by parameter as &str to a ForthValue if exists, or None if not.
-
 pub fn parse_output(token: &str) -> Option<ForthValue> {
     match token {
         "." => Some(ForthValue::Operation(ForthOperation::Output(
@@ -37,7 +36,6 @@ pub fn parse_output(token: &str) -> Option<ForthValue> {
 }
 
 ///Function that executes an output operation by receiving a reference to an output operation and the stack reference as mutable so it can be updated with the result.
-
 pub fn execute_output_op(op: &OutputOperation, stack: &mut Stack) {
     match op {
         OutputOperation::Dot => match stack.pop() {
